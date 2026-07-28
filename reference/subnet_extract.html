@@ -63,7 +63,7 @@ supra-threshold weight is returned as a single background block.</p>
 <span>  <span class="va">W</span>,</span>
 <span>  <span class="va">threshold</span>,</span>
 <span>  lambda <span class="op">=</span> <span class="fl">0.6</span>,</span>
-<span>  objective <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sicers"</span>, <span class="st">"avg_degree"</span>, <span class="st">"density"</span><span class="op">)</span>,</span>
+<span>  objective <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"generalized"</span>, <span class="st">"density"</span><span class="op">)</span>,</span>
 <span>  min_size <span class="op">=</span> <span class="fl">3L</span>,</span>
 <span>  max_clusters <span class="op">=</span> <span class="fl">25L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -84,13 +84,12 @@ set to zero before peeling.</p></dd>
 
 
 <dt id="arg-lambda">lambda<a class="anchor" aria-label="anchor" href="#arg-lambda"></a></dt>
-<dd><p>Objective tuning parameter in [0, 1]; see the section on
-choosing an objective. Ignored when <code>objective = "avg_degree"</code> or
-<code>"density"</code>.</p></dd>
+<dd><p>Size-penalty exponent in [0, 1]; see the section on choosing
+an objective. Ignored when <code>objective = "density"</code>.</p></dd>
 
 
 <dt id="arg-objective">objective<a class="anchor" aria-label="anchor" href="#arg-objective"></a></dt>
-<dd><p>One of <code>"sicers"</code> (default), <code>"avg_degree"</code> or <code>"density"</code>.</p></dd>
+<dd><p>One of <code>"generalized"</code> (default) or <code>"density"</code>.</p></dd>
 
 
 <dt id="arg-min-size">min_size<a class="anchor" aria-label="anchor" href="#arg-min-size"></a></dt>
@@ -149,27 +148,26 @@ a calibrated permutation test.</p>
     <h2 id="choosing-an-objective">Choosing an objective<a class="anchor" aria-label="anchor" href="#choosing-an-objective"></a></h2>
 
 
-<p>With <code>n</code> nodes spanning <code>m = n * (n - 1) / 2</code> possible edges and total
-supra-threshold weight <code>w</code>, the objectives are</p>
-<dl><dt><code>"sicers"</code></dt>
-<dd><p>\((w/m)^\lambda \, w^{1-\lambda}\), the generalized
-density of Chen et al. (2023). <code>lambda = 1</code> targets pure density and
-therefore small tight cliques; <code>lambda = 0</code> targets total weight and
-therefore large diffuse blocks. Values in [0.5, 0.9] trade the two off.</p></dd>
-
-<dt><code>"avg_degree"</code></dt>
-<dd><p>\(w/n\), Charikar's classical densest-subgraph
-objective. This is what the reference MATLAB implementation optimizes:
-its score divides by a <code>2 * lambda</code> factor that is constant within a
-call and so cannot influence the arg max, leaving <code>lambda</code> inert.
-Provided for reproducing published results.</p></dd>
+<p>A candidate set of <code>n</code> nodes carrying total supra-threshold weight <code>w</code> is
+scored by</p>
+<dl><dt><code>"generalized"</code></dt>
+<dd><p>\(w / n^{2\lambda}\), the default. The exponent
+controls how hard size is penalized, and moving <code>lambda</code> sweeps a family
+of familiar criteria: <code>lambda = 0</code> maximizes total weight and returns
+the whole graph, <code>lambda = 0.5</code> maximizes average degree, and <code>lambda</code>
+approaching 1 maximizes edge density and collapses onto small cliques.
+Values between 0.5 and 0.7 balance the two failure modes and are the
+usual working range.</p></dd>
 
 <dt><code>"density"</code></dt>
-<dd><p>\(w/m\). Degenerates toward the single densest pair
-of nodes and is only useful with a large <code>min_size</code>.</p></dd>
+<dd><p>\(w / \binom{n}{2}\), pure edge density, ignoring
+<code>lambda</code>. With no size floor this degenerates to the single densest pair
+of nodes, so use it only with a substantial <code>min_size</code>.</p></dd>
 
 
-</dl></div>
+</dl><p>Larger <code>lambda</code> means smaller, denser subnetworks. If you have no prior
+reason to fix it, <code><a href="tune_subnet.html">tune_subnet()</a></code> selects it from the data.</p>
+    </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Chen S, Zhang Y, Wu Q, Bi C, Kochunov P, Hong LE (2023). Identifying
@@ -193,19 +191,18 @@ choosing <code>lambda</code> and <code>threshold</code>.</p></div>
 <span class="r-in"><span><span class="va">part</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Greedy-peeling partition</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   nodes           : 60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   objective       : sicers (lambda = 0.60)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   objective       : generalized (lambda = 0.60)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   threshold       : 2.537  (5.0% of edges retained)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   subnetworks     : 8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   subnetworks     : 7</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  subnet size edges density</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       1   12    52   0.788</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       2    3     2   0.667</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       3    3     3   1.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       4    5     3   0.300</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       2    6     7   0.467</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       3    5     3   0.300</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       4    4     2   0.333</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       5    4     2   0.333</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       6    4     2   0.333</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       7    4     2   0.333</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       8    4     2   0.333</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   background      : 21 nodes</span>
 <span class="r-in"><span></span></span>

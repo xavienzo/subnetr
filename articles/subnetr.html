@@ -203,20 +203,19 @@ peels dense blocks out of it.</p>
 <span><span class="va">part</span></span>
 <span><span class="co">#&gt; Greedy-peeling partition</span></span>
 <span><span class="co">#&gt;   nodes           : 60</span></span>
-<span><span class="co">#&gt;   objective       : sicers (lambda = 0.60)</span></span>
+<span><span class="co">#&gt;   objective       : generalized (lambda = 0.60)</span></span>
 <span><span class="co">#&gt;   threshold       : 4.029  (5.0% of edges retained)</span></span>
-<span><span class="co">#&gt;   subnetworks     : 7</span></span>
+<span><span class="co">#&gt;   subnetworks     : 6</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;  subnet size edges density</span></span>
-<span><span class="co">#&gt;       1   12    39   0.591</span></span>
+<span><span class="co">#&gt;       1   13    43   0.551</span></span>
 <span><span class="co">#&gt;       2    8    20   0.714</span></span>
 <span><span class="co">#&gt;       3    4     2   0.333</span></span>
 <span><span class="co">#&gt;       4    4     2   0.333</span></span>
-<span><span class="co">#&gt;       5    4     2   0.333</span></span>
-<span><span class="co">#&gt;       6    3     2   0.667</span></span>
-<span><span class="co">#&gt;       7    3     1   0.333</span></span>
+<span><span class="co">#&gt;       5    5     3   0.300</span></span>
+<span><span class="co">#&gt;       6    3     1   0.333</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   background      : 22 nodes</span></span></code></pre></div>
+<span><span class="co">#&gt;   background      : 23 nodes</span></span></code></pre></div>
 <p>The algorithm repeatedly deletes the lowest-degree node and scores
 whatever remains after each deletion. The best-scoring set becomes a
 subnetwork; the nodes deleted before it become the input to the next
@@ -240,14 +239,14 @@ favours large diffuse blocks.</p>
 <span><span class="co">#&gt; 1    0.1             42</span></span>
 <span><span class="co">#&gt; 2    0.3             23</span></span>
 <span><span class="co">#&gt; 3    0.5             13</span></span>
-<span><span class="co">#&gt; 4    0.7              5</span></span>
-<span><span class="co">#&gt; 5    0.9              4</span></span></code></pre></div>
-<p>A note for anyone comparing against the MATLAB implementation: there,
-<code>lambda</code> has no effect at all. Its score divides by a factor
-of <code>2 * lambda</code> that is constant within a call, so it cannot
-change which step maximizes the score. That behaviour is available here
-as <code>objective = "avg_degree"</code> and is checked against the
-original algorithm in the test suite, but it is not the default.</p>
+<span><span class="co">#&gt; 4    0.7             12</span></span>
+<span><span class="co">#&gt; 5    0.9              5</span></span></code></pre></div>
+<p>Two values of <code>lambda</code> are worth recognizing. At
+<code>lambda = 0.5</code> the score is <code>w / n</code>, the average
+weighted degree, which is the classical densest-subgraph criterion. As
+<code>lambda</code> approaches 1 the score approaches edge density, and
+the extracted block shrinks toward the tightest small clique in the
+graph – which is why <code>min_size</code> exists.</p>
 </div>
 </div>
 <div class="section level2">
@@ -262,7 +261,7 @@ the test that decides whether it means anything.</p>
 <span><span class="co">#&gt; Predictor-associated subnetworks</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   nodes       : 60   edges: 1770</span></span>
-<span><span class="co">#&gt;   objective   : sicers (lambda = 0.50)</span></span>
+<span><span class="co">#&gt;   objective   : generalized (lambda = 0.50)</span></span>
 <span><span class="co">#&gt;   threshold   : 1.757   (10.0% of edges retained)</span></span>
 <span><span class="co">#&gt;   permutations: 999   alpha: 0.05</span></span>
 <span><span class="co">#&gt;   tuning      : calibrated criterion</span></span>
@@ -270,14 +269,12 @@ the test that decides whether it means anything.</p>
 <span><span class="co">#&gt;  subnet size edges density p_value significant log10_stat</span></span>
 <span><span class="co">#&gt;       1   15    88   0.838   0.001        TRUE      -69.6</span></span>
 <span><span class="co">#&gt;       2    8    25   0.893   0.001        TRUE      -21.6</span></span>
-<span><span class="co">#&gt;       3    4     4   0.667   0.979       FALSE       -2.9</span></span>
-<span><span class="co">#&gt;       4    4     2   0.333   1.000       FALSE       -0.9</span></span>
-<span><span class="co">#&gt;       5    3     2   0.667   1.000       FALSE       -1.6</span></span>
-<span><span class="co">#&gt;       6    4     2   0.333   1.000       FALSE       -0.9</span></span>
-<span><span class="co">#&gt;       7    5     3   0.300   1.000       FALSE       -1.2</span></span>
-<span><span class="co">#&gt;       8    5     3   0.300   1.000       FALSE       -1.2</span></span>
+<span><span class="co">#&gt;       3    4     4   0.667   0.984       FALSE       -2.9</span></span>
+<span><span class="co">#&gt;       4   10     8   0.178   1.000       FALSE       -1.1</span></span>
+<span><span class="co">#&gt;       5    4     2   0.333   1.000       FALSE       -0.9</span></span>
+<span><span class="co">#&gt;       6    8     5   0.179   1.000       FALSE       -0.8</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; 2 of 8 subnetworks significant at FWER 0.05.</span></span>
+<span><span class="co">#&gt; 2 of 6 subnetworks significant at FWER 0.05.</span></span>
 <span><span class="co">#&gt; P-values are max-statistic permutation p-values and are already</span></span>
 <span><span class="co">#&gt; family-wise-error corrected; do not adjust them again.</span></span></code></pre></div>
 <p>Two ideas are doing the work.</p>
@@ -321,10 +318,12 @@ p-value is at the resolution floor of <code>1 / (n_perm + 1)</code>.</p>
 detected node set is exactly the planted one.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">4</span>, <span class="fl">3</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, what <span class="op">=</span> <span class="st">"observed"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, what <span class="op">=</span> <span class="st">"observed"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="subnetr_files/figure-html/plot-fit-1.png" class="r-plt" alt="" width="960"></p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<p><img src="subnetr_files/figure-html/plot-fit-2.png" class="r-plt" alt="" width="960"></p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div>
 <p>The left panel is the matrix as measured; the right is the same
 matrix with nodes reordered so the extracted blocks sit on the diagonal,
@@ -338,7 +337,7 @@ a threshold.</p>
 </h2>
 <p><code><a href="../reference/subnet.html">subnet()</a></code> chose the threshold and <code>lambda</code> for
 you:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">tuning</span></span>
 <span><span class="co">#&gt; Threshold / lambda tuning</span></span>
 <span><span class="co">#&gt;   criterion : calibrated (25 permutations per grid point)</span></span>
@@ -347,11 +346,11 @@ you:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Top grid points:</span></span>
 <span><span class="co">#&gt;  lambda prob threshold n_clusters    lr     z</span></span>
-<span><span class="co">#&gt;     0.5 0.90     1.757          8 278.3 22.57</span></span>
-<span><span class="co">#&gt;     0.7 0.90     1.757          8 237.5 19.42</span></span>
-<span><span class="co">#&gt;     0.8 0.90     1.757         12 172.1 14.36</span></span>
-<span><span class="co">#&gt;     0.6 0.90     1.757          8 263.6 13.42</span></span>
-<span><span class="co">#&gt;     0.5 0.95     4.029          5 166.1 10.88</span></span></code></pre></div>
+<span><span class="co">#&gt;     0.5 0.90     1.757          6 273.9 22.23</span></span>
+<span><span class="co">#&gt;     0.7 0.90     1.757          8 238.5 21.02</span></span>
+<span><span class="co">#&gt;     0.8 0.90     1.757          9 221.9 18.72</span></span>
+<span><span class="co">#&gt;     0.6 0.90     1.757          8 278.3 16.58</span></span>
+<span><span class="co">#&gt;     0.5 0.95     4.029          5 166.1 13.03</span></span></code></pre></div>
 <p>Candidate settings are scored by the likelihood-ratio gain of a block
 model over a homogeneous one. That statistic is not comparable across
 thresholds as it stands, since changing the threshold changes the binary
@@ -363,7 +362,7 @@ real problem. Under the global null, testing at the selected values with
 a null built only at those values roughly <strong>doubles</strong> the
 type-I error — a nominal 5% test runs at about 11%. The fix is to let
 every permutation run the same search:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">null</span></span>
 <span><span class="co">#&gt; [1] "retune"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">null_grid</span><span class="op">)</span></span>
@@ -419,7 +418,7 @@ automatically.</p>
 <p>Every permutation seeds its own stream from its absolute index, so a
 result depends on <code>seed</code> alone — not on <code>n_cores</code>,
 and not on how permutations were split across workers.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">W</span>, threshold <span class="op">=</span> <span class="va">thr</span>, lambda <span class="op">=</span> <span class="fl">0.6</span>, n_perm <span class="op">=</span> <span class="fl">199</span>, seed <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
 <span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">W</span>, threshold <span class="op">=</span> <span class="va">thr</span>, lambda <span class="op">=</span> <span class="fl">0.6</span>, n_perm <span class="op">=</span> <span class="fl">199</span>, seed <span class="op">=</span> <span class="fl">7</span>,</span>
 <span>            n_cores <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>

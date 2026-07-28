@@ -1,9 +1,10 @@
 # Convert between a symmetric matrix and its vectorized lower triangle
 
 `vech()` extracts the strict lower triangle of a symmetric matrix in
-column-major order and `unvech()` rebuilds the matrix. This is the same
-ordering used by MATLAB's `squareform()`, so edge vectors can be moved
-between the two environments without reindexing.
+column-major order and `unvech()` rebuilds the matrix. This is the
+ordering the package uses for every edge vector, and it matches
+`W[lower.tri(W)]` in base R and `squareform()` in MATLAB, so edge
+vectors can be exchanged with either without reindexing.
 
 ## Usage
 

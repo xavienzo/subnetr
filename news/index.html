@@ -39,18 +39,20 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="subnetr-010">subnetr 0.1.0<a class="anchor" aria-label="anchor" href="#subnetr-010"></a></h2>
-<p>First release. An R reimplementation of the <code>Subnet</code> MATLAB tool for detecting predictor-associated functional connectivity subnetworks, with simulation-based power analysis.</p>
+<p>First release. Detection of predictor-associated functional connectivity subnetworks, with simulation-based power analysis for study planning.</p>
 <div class="section level3">
 <h3 id="analysis-0-1-0">Analysis<a class="anchor" aria-label="anchor" href="#analysis-0-1-0"></a></h3>
 <ul><li>
 <code><a href="../reference/subnet.html">subnet()</a></code> runs the full pipeline: screen, tune, extract, test.</li>
 <li>
-<code><a href="../reference/subnet_extract.html">subnet_extract()</a></code> exposes greedy peeling on its own.</li>
+<code><a href="../reference/subnet_extract.html">subnet_extract()</a></code> exposes greedy peeling on its own. A candidate set of <code>n</code> nodes holding total weight <code>w</code> scores <code>w / n^(2 * lambda)</code>, a family that spans total weight at <code>lambda = 0</code>, average degree at <code>lambda = 0.5</code>, and edge density as <code>lambda</code> approaches 1.</li>
 <li>
 <code><a href="../reference/edge_stats.html">edge_stats()</a></code> computes covariate-adjusted edge-wise association statistics from subject-level connectivity, vectorized over edges via the Frisch-Waugh-Lovell theorem and evaluated on the log p-value scale so that extreme evidence does not underflow.</li>
 <li>
-<code><a href="../reference/tune_subnet.html">tune_subnet()</a></code> selects the screening threshold and the objective parameter.</li>
-<li>Reordered-matrix and power-curve plots, plus <code><a href="../reference/membership.html">membership()</a></code>, <code><a href="../reference/dice.html">dice()</a></code>, <code><a href="../reference/vech.html">vech()</a></code> / <code><a href="../reference/vech.html">unvech()</a></code>.</li>
+<code><a href="../reference/tune_subnet.html">tune_subnet()</a></code> selects the screening threshold and <code>lambda</code>, standardizing each candidate against its own permutation null so that settings producing graphs of different sparsity stay comparable.</li>
+<li>Inference is a Westfall-Young max-statistic permutation test, so reported p-values control the family-wise error rate across all extracted subnetworks with no further correction. They use the add-one estimator <code>(1 + #{T_null &lt;= T_obs}) / (M + 1)</code> and are therefore never exactly zero.</li>
+<li>Choosing the threshold from the data and then testing against a null built only at the chosen value roughly doubles the type-I error. <code><a href="../reference/subnet.html">subnet()</a></code> defaults to <code>null = "retune"</code>, which has every permutation run the same parameter search, restoring calibration at no extra asymptotic cost.</li>
+<li>Reordered-matrix and power-curve plots, plus <code><a href="../reference/membership.html">membership()</a></code>, <code><a href="../reference/dice.html">dice()</a></code>, <code><a href="../reference/vech.html">vech()</a></code> / <code><a href="../reference/vech.html">unvech()</a></code>. Matrix plots label their colour scale with the statistic being displayed, carried through from <code><a href="../reference/edge_stats.html">edge_stats()</a></code>.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="power-analysis-0-1-0">Power analysis<a class="anchor" aria-label="anchor" href="#power-analysis-0-1-0"></a></h3>
@@ -60,21 +62,10 @@
 <code><a href="../reference/simulate_fc.html">simulate_fc()</a></code> plants subnetworks with specified effect size and contamination rates. Its default <code>method = "fast"</code> draws edge t-statistics from their exact non-central sampling distribution instead of materializing subject-level data, which is what makes large replicate counts practical.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="differences-from-the-reference-matlab-implementation-0-1-0">Differences from the reference MATLAB implementation<a class="anchor" aria-label="anchor" href="#differences-from-the-reference-matlab-implementation-0-1-0"></a></h3>
-<ul><li>
-<strong><code>lambda</code> now has an effect.</strong> <code>greedy_peeling_v2.m</code> divides its score by <code>2 * lambda</code>, a constant within a call, so <code>lambda</code> could not influence the arg max and the <code>lambda</code> search in <code>param_tuning.m</code> was a no-op. The generalized objective of Chen et al. (2023) is restored as the default; the original behaviour remains available as <code>objective = "avg_degree"</code> and is checked for exact agreement in the test suite.</li>
-<li>
-<strong>Tuning no longer inflates the type-I error.</strong> Selecting the threshold from the data and then testing against a null built only at the selected value roughly doubles the error rate. <code><a href="../reference/subnet.html">subnet()</a></code> defaults to <code>null = "retune"</code>, which makes every permutation run the same parameter search, restoring calibration at no extra asymptotic cost.</li>
-<li>
-<strong>P-values use the add-one estimator</strong> <code>(1 + #{T_null &lt;= T_obs}) / (M + 1)</code>, so they are never exactly zero.</li>
-<li>
-<strong>Extraction stops when the remainder carries no supra-threshold weight</strong> rather than continuing until <code>N - 1</code> nodes are assigned.</li>
-</ul></div>
-<div class="section level3">
 <h3 id="performance-0-1-0">Performance<a class="anchor" aria-label="anchor" href="#performance-0-1-0"></a></h3>
-<ul><li>The screened graph is stored sparsely and peeled with a lazily-updated min-heap, so a peeling pass costs <code>O(E log E)</code> rather than <code>O(N^2)</code>.</li>
+<ul><li>The screened graph is stored sparsely and peeled with a lazily-updated min-heap, so a peeling pass costs <code>O(E log E)</code> rather than <code>O(N^2)</code> in the number of nodes.</li>
 <li>A permutation places only the surviving edges, <code>O(E)</code> rather than <code>O(N^2)</code>, using the fact that permuting a screened weight vector is equivalent in distribution to choosing <code>E</code> positions at random and dealing the surviving weights into them.</li>
-<li>End to end this is roughly 8 to 14 times faster than a vectorized R port of the reference algorithm. See <code>benchmarks/benchmark.R</code>.</li>
+<li>A 200-permutation test on a 400-node connectome takes about 0.4 s single-core. See <code>benchmarks/benchmark.R</code>.</li>
 <li>Permutations seed their own RNG streams from their absolute index, so results depend on <code>seed</code> alone and never on <code>n_cores</code> or on how work was chunked.</li>
 </ul></div>
 </div>

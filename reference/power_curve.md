@@ -21,7 +21,7 @@ power_curve(
   alpha = 0.05,
   threshold_prob = NULL,
   lambda = 0.6,
-  objective = c("sicers", "avg_degree", "density"),
+  objective = c("generalized", "density"),
   min_size = 3L,
   max_clusters = 25L,
   tune_each = FALSE,
@@ -222,8 +222,8 @@ pw
 #>   Dice cutoff     : 0.50
 #> 
 #>    n         power      recovery  dice n_sig
-#>   50 1.000 (0.000) 1.000 (0.000) 0.961     1
-#>  100 1.000 (0.000) 1.000 (0.000) 0.998     1
+#>   50 1.000 (0.000) 1.000 (0.000) 0.982     1
+#>  100 1.000 (0.000) 1.000 (0.000) 1.000     1
 #> 
 #> Power and recovery show the estimate with its Monte Carlo standard
 #> error in parentheses.

@@ -56,7 +56,7 @@ family-wise-error-controlled p-value from a permutation null.</p>
 <span>  lambda <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  alpha <span class="op">=</span> <span class="fl">0.05</span>,</span>
 <span>  n_perm <span class="op">=</span> <span class="fl">1000L</span>,</span>
-<span>  objective <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sicers"</span>, <span class="st">"avg_degree"</span>, <span class="st">"density"</span><span class="op">)</span>,</span>
+<span>  objective <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"generalized"</span>, <span class="st">"density"</span><span class="op">)</span>,</span>
 <span>  min_size <span class="op">=</span> <span class="fl">3L</span>,</span>
 <span>  max_clusters <span class="op">=</span> <span class="fl">25L</span>,</span>
 <span>  tune <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -82,8 +82,8 @@ family-wise-error-controlled p-value from a permutation null.</p>
 
 
 <dt id="arg-lambda">lambda<a class="anchor" aria-label="anchor" href="#arg-lambda"></a></dt>
-<dd><p>Objective tuning parameter. If <code>NULL</code> (default) it is chosen
-by <code><a href="tune_subnet.html">tune_subnet()</a></code>.</p></dd>
+<dd><p>Size-penalty exponent. If <code>NULL</code> (default) it is chosen by
+<code><a href="tune_subnet.html">tune_subnet()</a></code>.</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
@@ -209,10 +209,10 @@ and those moments describe the very distribution a permuted data set is
 drawn from – so they are estimated once and reused, not re-estimated inside
 each permutation.</p>
 <p>Alternatives: <code>null = "grid"</code> takes the maximum over all grid points
-instead, which is valid for any selection rule but noticeably conservative
-(about 1.5% actual error for a nominal 5% test); <code>null = "selected"</code>
-applies no correction at all and reproduces the behaviour of the reference
-MATLAB implementation.</p>
+instead, which is valid whatever the selection rule but noticeably
+conservative (about 1.5% actual error for a nominal 5% test);
+<code>null = "selected"</code> applies no correction at all and is appropriate only
+when <code>threshold</code> and <code>lambda</code> were fixed in advance rather than tuned.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -229,25 +229,19 @@ MATLAB implementation.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Predictor-associated subnetworks</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   nodes       : 60   edges: 1770</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   objective   : sicers (lambda = 0.70)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   threshold   : 1.307   (10.0% of edges retained)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   objective   : generalized (lambda = 0.50)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   threshold   : 3.387   (5.0% of edges retained)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   permutations: 199   alpha: 0.05</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   tuning      : calibrated criterion</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  subnet size edges density p_value significant log10_stat</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       1   12    59   0.894   0.005        TRUE      -50.4</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       2    4     3   0.500   1.000       FALSE       -1.8</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       3    4     5   0.833   0.630       FALSE       -4.3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       4    4     3   0.500   1.000       FALSE       -1.8</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       5    4     2   0.333   1.000       FALSE       -0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       6    3     3   1.000   0.995       FALSE       -3.0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       7    4     2   0.333   1.000       FALSE       -0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       8    4     2   0.333   1.000       FALSE       -0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       9    3     3   1.000   0.995       FALSE       -3.0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      10    4     2   0.333   1.000       FALSE       -0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      11    4     2   0.333   1.000       FALSE       -0.9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       1   12    55   0.833   0.005        TRUE      -59.6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       2    4     2   0.333   1.000       FALSE       -1.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       3    8     5   0.179   1.000       FALSE       -1.9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       4   13     9   0.115   1.000       FALSE       -1.8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       5    3     1   0.333   1.000       FALSE       -0.8</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 of 11 subnetworks significant at FWER 0.05.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 of 5 subnetworks significant at FWER 0.05.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> P-values are max-statistic permutation p-values and are already</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> family-wise-error corrected; do not adjust them again.</span>
 <span class="r-in"><span></span></span>

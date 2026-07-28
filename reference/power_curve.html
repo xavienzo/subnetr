@@ -61,7 +61,7 @@ detects a predictor-associated subnetwork of a given size and effect size.</p>
 <span>  alpha <span class="op">=</span> <span class="fl">0.05</span>,</span>
 <span>  threshold_prob <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  lambda <span class="op">=</span> <span class="fl">0.6</span>,</span>
-<span>  objective <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sicers"</span>, <span class="st">"avg_degree"</span>, <span class="st">"density"</span><span class="op">)</span>,</span>
+<span>  objective <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"generalized"</span>, <span class="st">"density"</span><span class="op">)</span>,</span>
 <span>  min_size <span class="op">=</span> <span class="fl">3L</span>,</span>
 <span>  max_clusters <span class="op">=</span> <span class="fl">25L</span>,</span>
 <span>  tune_each <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -241,8 +241,8 @@ it. The reason to use it is fidelity, not conservatism.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Dice cutoff     : 0.50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    n         power      recovery  dice n_sig</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   50 1.000 (0.000) 1.000 (0.000) 0.961     1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  100 1.000 (0.000) 1.000 (0.000) 0.998     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   50 1.000 (0.000) 1.000 (0.000) 0.982     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  100 1.000 (0.000) 1.000 (0.000) 1.000     1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Power and recovery show the estimate with its Monte Carlo standard</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> error in parentheses.</span>

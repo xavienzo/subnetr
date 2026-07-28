@@ -70,11 +70,11 @@ pw
 #>   Dice cutoff     : 0.50
 #> 
 #>    n         power      recovery  dice n_sig
-#>   60 0.075 (0.024) 0.017 (0.012) 0.029  0.07
-#>  100 0.058 (0.021) 0.042 (0.018) 0.039  0.06
-#>  140 0.375 (0.044) 0.375 (0.044) 0.301  0.38
-#>  180 0.700 (0.042) 0.700 (0.042) 0.575  0.70
-#>  220 0.917 (0.025) 0.917 (0.025) 0.768  0.92
+#>   60 0.083 (0.025) 0.017 (0.012) 0.032  0.08
+#>  100 0.133 (0.031) 0.125 (0.030) 0.089  0.13
+#>  140 0.467 (0.046) 0.467 (0.046) 0.383  0.47
+#>  180 0.800 (0.037) 0.792 (0.037) 0.681  0.80
+#>  220 0.967 (0.016) 0.967 (0.016) 0.843  0.98
 #> 
 #> Power and recovery show the estimate with its Monte Carlo standard
 #> error in parentheses.
@@ -90,7 +90,7 @@ plot(pw, target = 0.8)
 ``` r
 
 required_n(pw, target = 0.8)
-#> [1] 198.4615
+#> [1] 181.9048
 ```
 
 ### Two kinds of power
@@ -116,11 +116,11 @@ regions, size the study on the recovery curve.
 with(pw$power, data.frame(n, any = power, recovery = power_recovery,
                           gap = round(power - power_recovery, 3)))
 #>     n        any   recovery   gap
-#> 1  60 0.07500000 0.01666667 0.058
-#> 2 100 0.05833333 0.04166667 0.017
-#> 3 140 0.37500000 0.37500000 0.000
-#> 4 180 0.70000000 0.70000000 0.000
-#> 5 220 0.91666667 0.91666667 0.000
+#> 1  60 0.08333333 0.01666667 0.067
+#> 2 100 0.13333333 0.12500000 0.008
+#> 3 140 0.46666667 0.46666667 0.000
+#> 4 180 0.80000000 0.79166667 0.008
+#> 5 220 0.96666667 0.96666667 0.000
 ```
 
 ## The threshold dominates everything
@@ -144,11 +144,11 @@ sweep <- lapply(c(0.99, 0.975, 0.95, 0.90), function(tp) {
              recovery = p$power$power_recovery)
 })
 do.call(rbind, sweep)
-#>   threshold_prob edges_kept recovery
-#> 1          0.990         32     0.30
-#> 2          0.975         79     0.95
-#> 3          0.950        158     1.00
-#> 4          0.900        316     1.00
+#>   threshold_prob edges_kept  recovery
+#> 1          0.990         32 0.5833333
+#> 2          0.975         79 1.0000000
+#> 3          0.950        158 1.0000000
+#> 4          0.900        316 1.0000000
 ```
 
 The planted subnetwork here contains `20 * 19 / 2 = 190` edges. At the
@@ -181,8 +181,8 @@ honest <- power_curve(n = c(100, 180), n_nodes = 100, cluster_size = 15,
                                   probs = c(0.95, 0.975, 0.99)))
 honest$power[, c("n", "power", "power_recovery")]
 #>     n power power_recovery
-#> 1 100 0.250          0.125
-#> 2 180 0.825          0.825
+#> 1 100   0.2          0.150
+#> 2 180   0.9          0.875
 ```
 
 Shrinking the tuning grid via `tune` is the main lever for making this
@@ -214,13 +214,13 @@ res <- Map(function(nn, n) {
   data.frame(n_nodes = nn, n = n, recovery = p$power$power_recovery)
 }, grid$n_nodes, grid$n)
 do.call(rbind, res)
-#>   n_nodes   n   recovery
-#> 1      60 100 0.56666667
-#> 2     100 100 0.06666667
-#> 3     200 100 0.01666667
-#> 4      60 200 0.96666667
-#> 5     100 200 0.85000000
-#> 6     200 200 0.31666667
+#>   n_nodes   n  recovery
+#> 1      60 100 0.7000000
+#> 2     100 100 0.1500000
+#> 3     200 100 0.0000000
+#> 4      60 200 1.0000000
+#> 5     100 200 0.9166667
+#> 6     200 200 0.3500000
 ```
 
 More nodes means more edges to search and a harsher effective

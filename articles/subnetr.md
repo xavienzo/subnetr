@@ -143,20 +143,19 @@ part <- subnet_extract(sim$W, threshold = thr, lambda = 0.6)
 part
 #> Greedy-peeling partition
 #>   nodes           : 60
-#>   objective       : sicers (lambda = 0.60)
+#>   objective       : generalized (lambda = 0.60)
 #>   threshold       : 4.029  (5.0% of edges retained)
-#>   subnetworks     : 7
+#>   subnetworks     : 6
 #> 
 #>  subnet size edges density
-#>       1   12    39   0.591
+#>       1   13    43   0.551
 #>       2    8    20   0.714
 #>       3    4     2   0.333
 #>       4    4     2   0.333
-#>       5    4     2   0.333
-#>       6    3     2   0.667
-#>       7    3     1   0.333
+#>       5    5     3   0.300
+#>       6    3     1   0.333
 #> 
-#>   background      : 22 nodes
+#>   background      : 23 nodes
 ```
 
 The algorithm repeatedly deletes the lowest-degree node and scores
@@ -187,16 +186,15 @@ data.frame(lambda = c(0.1, 0.3, 0.5, 0.7, 0.9), top_block_size = sizes)
 #> 1    0.1             42
 #> 2    0.3             23
 #> 3    0.5             13
-#> 4    0.7              5
-#> 5    0.9              4
+#> 4    0.7             12
+#> 5    0.9              5
 ```
 
-A note for anyone comparing against the MATLAB implementation: there,
-`lambda` has no effect at all. Its score divides by a factor of
-`2 * lambda` that is constant within a call, so it cannot change which
-step maximizes the score. That behaviour is available here as
-`objective = "avg_degree"` and is checked against the original algorithm
-in the test suite, but it is not the default.
+Two values of `lambda` are worth recognizing. At `lambda = 0.5` the
+score is `w / n`, the average weighted degree, which is the classical
+densest-subgraph criterion. As `lambda` approaches 1 the score
+approaches edge density, and the extracted block shrinks toward the
+tightest small clique in the graph – which is why `min_size` exists.
 
 ## Step 4: inference
 
@@ -212,7 +210,7 @@ fit
 #> Predictor-associated subnetworks
 #> 
 #>   nodes       : 60   edges: 1770
-#>   objective   : sicers (lambda = 0.50)
+#>   objective   : generalized (lambda = 0.50)
 #>   threshold   : 1.757   (10.0% of edges retained)
 #>   permutations: 999   alpha: 0.05
 #>   tuning      : calibrated criterion
@@ -220,14 +218,12 @@ fit
 #>  subnet size edges density p_value significant log10_stat
 #>       1   15    88   0.838   0.001        TRUE      -69.6
 #>       2    8    25   0.893   0.001        TRUE      -21.6
-#>       3    4     4   0.667   0.979       FALSE       -2.9
-#>       4    4     2   0.333   1.000       FALSE       -0.9
-#>       5    3     2   0.667   1.000       FALSE       -1.6
-#>       6    4     2   0.333   1.000       FALSE       -0.9
-#>       7    5     3   0.300   1.000       FALSE       -1.2
-#>       8    5     3   0.300   1.000       FALSE       -1.2
+#>       3    4     4   0.667   0.984       FALSE       -2.9
+#>       4   10     8   0.178   1.000       FALSE       -1.1
+#>       5    4     2   0.333   1.000       FALSE       -0.9
+#>       6    8     5   0.179   1.000       FALSE       -0.8
 #> 
-#> 2 of 8 subnetworks significant at FWER 0.05.
+#> 2 of 6 subnetworks significant at FWER 0.05.
 #> P-values are max-statistic permutation p-values and are already
 #> family-wise-error corrected; do not adjust them again.
 ```
@@ -286,10 +282,16 @@ planted one.
 
 op <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
 plot(fit, what = "observed")
-plot(fit)
 ```
 
 ![](subnetr_files/figure-html/plot-fit-1.png)
+
+``` r
+
+plot(fit)
+```
+
+![](subnetr_files/figure-html/plot-fit-2.png)
 
 ``` r
 
@@ -317,11 +319,11 @@ fit$tuning
 #> 
 #> Top grid points:
 #>  lambda prob threshold n_clusters    lr     z
-#>     0.5 0.90     1.757          8 278.3 22.57
-#>     0.7 0.90     1.757          8 237.5 19.42
-#>     0.8 0.90     1.757         12 172.1 14.36
-#>     0.6 0.90     1.757          8 263.6 13.42
-#>     0.5 0.95     4.029          5 166.1 10.88
+#>     0.5 0.90     1.757          6 273.9 22.23
+#>     0.7 0.90     1.757          8 238.5 21.02
+#>     0.8 0.90     1.757          9 221.9 18.72
+#>     0.6 0.90     1.757          8 278.3 16.58
+#>     0.5 0.95     4.029          5 166.1 13.03
 ```
 
 Candidate settings are scored by the likelihood-ratio gain of a block

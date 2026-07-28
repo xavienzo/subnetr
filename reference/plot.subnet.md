@@ -15,6 +15,8 @@ plot(
   significant_only = TRUE,
   col = grDevices::hcl.colors(64, "Inferno"),
   main = NULL,
+  weight_label = NULL,
+  legend = TRUE,
   ...
 )
 ```
@@ -42,6 +44,17 @@ plot(
 
   Plot title.
 
+- weight_label:
+
+  Label for the colour scale, as a string or an
+  [expression](https://rdrr.io/r/base/expression.html). Defaults to the
+  `"statistic"` attribute of `W`, and to `"edge weight"` when the matrix
+  carries none.
+
+- legend:
+
+  Draw the colour scale.
+
 - ...:
 
   Passed to
@@ -51,6 +64,17 @@ plot(
 
 `x`, invisibly. Called for the plot.
 
+## Details
+
+The colour scale is labelled with the quantity being displayed. When `W`
+came from
+[`edge_stats()`](https://xavienzo.github.io/subnetr/reference/edge_stats.md)
+or
+[`simulate_fc()`](https://xavienzo.github.io/subnetr/reference/simulate_fc.md)
+that label is carried along with the matrix, so the figure states
+whether it is showing \\-\log\_{10}\\ p, a t statistic, or something
+else. Supply `weight_label` for matrices built by other means.
+
 ## Examples
 
 ``` r
@@ -58,5 +82,9 @@ sim <- simulate_fc(n = 120, n_nodes = 60, cluster_size = 12, f2 = 0.2,
                    seed = 11)
 fit <- subnet(sim$W, n_perm = 99, seed = 1)
 plot(fit)
+
+
+# A matrix of t statistics from a real study labels itself accordingly
+plot(fit, weight_label = "t statistic")
 
 ```

@@ -60,6 +60,8 @@ detection is a compact subnetwork or a diffuse smear.</p>
 <span>  significant_only <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  col <span class="op">=</span> <span class="fu">grDevices</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grDevices/palettes.html" class="external-link">hcl.colors</a></span><span class="op">(</span><span class="fl">64</span>, <span class="st">"Inferno"</span><span class="op">)</span>,</span>
 <span>  main <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  weight_label <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -89,6 +91,16 @@ original node order.</p></dd>
 <dd><p>Plot title.</p></dd>
 
 
+<dt id="arg-weight-label">weight_label<a class="anchor" aria-label="anchor" href="#arg-weight-label"></a></dt>
+<dd><p>Label for the colour scale, as a string or an
+<a href="https://rdrr.io/r/base/expression.html" class="external-link">expression</a>. Defaults to the <code>"statistic"</code> attribute of <code>W</code>, and to
+<code>"edge weight"</code> when the matrix carries none.</p></dd>
+
+
+<dt id="arg-legend">legend<a class="anchor" aria-label="anchor" href="#arg-legend"></a></dt>
+<dd><p>Draw the colour scale.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Passed to <code><a href="https://rdrr.io/r/graphics/image.html" class="external-link">graphics::image()</a></code>.</p></dd>
 
@@ -96,6 +108,14 @@ original node order.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p><code>x</code>, invisibly. Called for the plot.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The colour scale is labelled with the quantity being displayed. When <code>W</code>
+came from <code><a href="edge_stats.html">edge_stats()</a></code> or <code><a href="simulate_fc.html">simulate_fc()</a></code> that label is carried along with
+the matrix, so the figure states whether it is showing \(-\log_{10}\) p,
+a t statistic, or something else. Supply <code>weight_label</code> for matrices built
+by other means.</p>
     </div>
 
     <div class="section level2">
@@ -105,6 +125,10 @@ original node order.</p></dd>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="subnet.html">subnet</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">W</span>, n_perm <span class="op">=</span> <span class="fl">99</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot.subnet-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A matrix of t statistics from a real study labels itself accordingly</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, weight_label <span class="op">=</span> <span class="st">"t statistic"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="plot.subnet-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

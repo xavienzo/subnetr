@@ -14,7 +14,7 @@ subnet(
   lambda = NULL,
   alpha = 0.05,
   n_perm = 1000L,
-  objective = c("sicers", "avg_degree", "density"),
+  objective = c("generalized", "density"),
   min_size = 3L,
   max_clusters = 25L,
   tune = list(),
@@ -40,7 +40,7 @@ subnet(
 
 - lambda:
 
-  Objective tuning parameter. If `NULL` (default) it is chosen by
+  Size-penalty exponent. If `NULL` (default) it is chosen by
   [`tune_subnet()`](https://xavienzo.github.io/subnetr/reference/tune_subnet.md).
 
 - alpha:
@@ -185,10 +185,10 @@ set is drawn from – so they are estimated once and reused, not
 re-estimated inside each permutation.
 
 Alternatives: `null = "grid"` takes the maximum over all grid points
-instead, which is valid for any selection rule but noticeably
+instead, which is valid whatever the selection rule but noticeably
 conservative (about 1.5% actual error for a nominal 5% test);
-`null = "selected"` applies no correction at all and reproduces the
-behaviour of the reference MATLAB implementation.
+`null = "selected"` applies no correction at all and is appropriate only
+when `threshold` and `lambda` were fixed in advance rather than tuned.
 
 ## See also
 
@@ -208,25 +208,19 @@ fit
 #> Predictor-associated subnetworks
 #> 
 #>   nodes       : 60   edges: 1770
-#>   objective   : sicers (lambda = 0.70)
-#>   threshold   : 1.307   (10.0% of edges retained)
+#>   objective   : generalized (lambda = 0.50)
+#>   threshold   : 3.387   (5.0% of edges retained)
 #>   permutations: 199   alpha: 0.05
 #>   tuning      : calibrated criterion
 #> 
 #>  subnet size edges density p_value significant log10_stat
-#>       1   12    59   0.894   0.005        TRUE      -50.4
-#>       2    4     3   0.500   1.000       FALSE       -1.8
-#>       3    4     5   0.833   0.630       FALSE       -4.3
-#>       4    4     3   0.500   1.000       FALSE       -1.8
-#>       5    4     2   0.333   1.000       FALSE       -0.9
-#>       6    3     3   1.000   0.995       FALSE       -3.0
-#>       7    4     2   0.333   1.000       FALSE       -0.9
-#>       8    4     2   0.333   1.000       FALSE       -0.9
-#>       9    3     3   1.000   0.995       FALSE       -3.0
-#>      10    4     2   0.333   1.000       FALSE       -0.9
-#>      11    4     2   0.333   1.000       FALSE       -0.9
+#>       1   12    55   0.833   0.005        TRUE      -59.6
+#>       2    4     2   0.333   1.000       FALSE       -1.5
+#>       3    8     5   0.179   1.000       FALSE       -1.9
+#>       4   13     9   0.115   1.000       FALSE       -1.8
+#>       5    3     1   0.333   1.000       FALSE       -0.8
 #> 
-#> 1 of 11 subnetworks significant at FWER 0.05.
+#> 1 of 5 subnetworks significant at FWER 0.05.
 #> P-values are max-statistic permutation p-values and are already
 #> family-wise-error corrected; do not adjust them again.
 

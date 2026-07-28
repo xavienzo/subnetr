@@ -46,12 +46,6 @@ pw <- power_curve(n = c(40, 80, 120), n_nodes = 60, cluster_size = 12,
 #> n = 80  (20 replicates)
 #> n = 120  (20 replicates)
 plot(pw, target = 0.8)
-#> Warning: zero-length arrow is of indeterminate angle and so skipped
-#> Warning: zero-length arrow is of indeterminate angle and so skipped
-#> Warning: zero-length arrow is of indeterminate angle and so skipped
-#> Warning: zero-length arrow is of indeterminate angle and so skipped
-#> Warning: zero-length arrow is of indeterminate angle and so skipped
-#> Warning: zero-length arrow is of indeterminate angle and so skipped
 
 # }
 ```

@@ -13,7 +13,7 @@ tune_subnet(
   threshold_grid = NULL,
   criterion = c("calibrated", "likelihood"),
   n_perm = 25L,
-  objective = c("sicers", "avg_degree", "density"),
+  objective = c("generalized", "density"),
   min_size = 3L,
   max_clusters = 25L,
   n_cores = 1L,
@@ -29,8 +29,9 @@ tune_subnet(
 
 - lambda_grid:
 
-  Candidate values for the objective parameter. Ignored when `objective`
-  is not `"sicers"`, in which case only the first value is used.
+  Candidate values for the size-penalty exponent. Ignored when
+  `objective` is not `"generalized"`, in which case only the first value
+  is used.
 
 - probs:
 
@@ -95,12 +96,10 @@ log-likelihood over the single-\\\pi\\ model.
 That statistic cannot be compared across thresholds as it stands,
 because changing the threshold changes the binary data being modelled –
 a higher threshold mechanically produces a sparser graph and a different
-likelihood scale. The reference implementation sidesteps this by
-averaging over thresholds with ad hoc weights. Instead,
-`criterion = "calibrated"` (the default) puts every grid point on a
-common scale by standardizing its likelihood ratio against a null
-obtained by permuting the edge weights and rerunning the same
-extraction: \$\$z(\lambda, r) = \frac{LR\_{obs}(\lambda, r) -
+likelihood scale. `criterion = "calibrated"` (the default) puts every
+grid point on a common scale by standardizing its likelihood ratio
+against a null obtained by permuting the edge weights and rerunning the
+same extraction: \$\$z(\lambda, r) = \frac{LR\_{obs}(\lambda, r) -
 \mathrm{mean}(LR\_{null})}{\mathrm{sd}(LR\_{null})}.\$\$ The grid point
 with the largest `z` is selected. All grid points share the same
 permutations, so they are compared under common random numbers. This
@@ -126,13 +125,13 @@ tn
 #> Threshold / lambda tuning
 #>   criterion : calibrated (10 permutations per grid point)
 #>   grid      : 5 lambda x 5 threshold
-#>   selected  : lambda = 0.60, threshold = 2.283
+#>   selected  : lambda = 0.70, threshold = 2.283
 #> 
 #> Top grid points:
 #>  lambda prob threshold n_clusters    lr     z
-#>     0.6 0.95     2.283          8 180.4 22.48
-#>     0.7 0.90     1.291         10 149.5 20.34
-#>     0.7 0.95     2.283          8 178.2 17.05
-#>     0.6 0.90     1.291         10 153.1 11.97
-#>     0.5 0.90     1.291          8 153.4 11.26
+#>     0.7 0.95     2.283          8 180.4 21.63
+#>     0.6 0.95     2.283          8 180.4 17.37
+#>     0.8 0.90     1.291         11 113.8 15.86
+#>     0.7 0.90     1.291         10 153.1 15.47
+#>     0.6 0.90     1.291          8 150.1 11.96
 ```

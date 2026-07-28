@@ -2,28 +2,46 @@
 
 ## subnetr 0.1.0
 
-First release. An R reimplementation of the `Subnet` MATLAB tool for
-detecting predictor-associated functional connectivity subnetworks, with
-simulation-based power analysis.
+First release. Detection of predictor-associated functional connectivity
+subnetworks, with simulation-based power analysis for study planning.
 
 ### Analysis
 
 - [`subnet()`](https://xavienzo.github.io/subnetr/reference/subnet.md)
   runs the full pipeline: screen, tune, extract, test.
 - [`subnet_extract()`](https://xavienzo.github.io/subnetr/reference/subnet_extract.md)
-  exposes greedy peeling on its own.
+  exposes greedy peeling on its own. A candidate set of `n` nodes
+  holding total weight `w` scores `w / n^(2 * lambda)`, a family that
+  spans total weight at `lambda = 0`, average degree at `lambda = 0.5`,
+  and edge density as `lambda` approaches 1.
 - [`edge_stats()`](https://xavienzo.github.io/subnetr/reference/edge_stats.md)
   computes covariate-adjusted edge-wise association statistics from
   subject-level connectivity, vectorized over edges via the
   Frisch-Waugh-Lovell theorem and evaluated on the log p-value scale so
   that extreme evidence does not underflow.
 - [`tune_subnet()`](https://xavienzo.github.io/subnetr/reference/tune_subnet.md)
-  selects the screening threshold and the objective parameter.
+  selects the screening threshold and `lambda`, standardizing each
+  candidate against its own permutation null so that settings producing
+  graphs of different sparsity stay comparable.
+- Inference is a Westfall-Young max-statistic permutation test, so
+  reported p-values control the family-wise error rate across all
+  extracted subnetworks with no further correction. They use the add-one
+  estimator `(1 + #{T_null <= T_obs}) / (M + 1)` and are therefore never
+  exactly zero.
+- Choosing the threshold from the data and then testing against a null
+  built only at the chosen value roughly doubles the type-I error.
+  [`subnet()`](https://xavienzo.github.io/subnetr/reference/subnet.md)
+  defaults to `null = "retune"`, which has every permutation run the
+  same parameter search, restoring calibration at no extra asymptotic
+  cost.
 - Reordered-matrix and power-curve plots, plus
   [`membership()`](https://xavienzo.github.io/subnetr/reference/membership.md),
   [`dice()`](https://xavienzo.github.io/subnetr/reference/dice.md),
   [`vech()`](https://xavienzo.github.io/subnetr/reference/vech.md) /
   [`unvech()`](https://xavienzo.github.io/subnetr/reference/vech.md).
+  Matrix plots label their colour scale with the statistic being
+  displayed, carried through from
+  [`edge_stats()`](https://xavienzo.github.io/subnetr/reference/edge_stats.md).
 
 ### Power analysis
 
@@ -38,37 +56,17 @@ simulation-based power analysis.
   subject-level data, which is what makes large replicate counts
   practical.
 
-### Differences from the reference MATLAB implementation
-
-- **`lambda` now has an effect.** `greedy_peeling_v2.m` divides its
-  score by `2 * lambda`, a constant within a call, so `lambda` could not
-  influence the arg max and the `lambda` search in `param_tuning.m` was
-  a no-op. The generalized objective of Chen et al. (2023) is restored
-  as the default; the original behaviour remains available as
-  `objective = "avg_degree"` and is checked for exact agreement in the
-  test suite.
-- **Tuning no longer inflates the type-I error.** Selecting the
-  threshold from the data and then testing against a null built only at
-  the selected value roughly doubles the error rate.
-  [`subnet()`](https://xavienzo.github.io/subnetr/reference/subnet.md)
-  defaults to `null = "retune"`, which makes every permutation run the
-  same parameter search, restoring calibration at no extra asymptotic
-  cost.
-- **P-values use the add-one estimator**
-  `(1 + #{T_null <= T_obs}) / (M + 1)`, so they are never exactly zero.
-- **Extraction stops when the remainder carries no supra-threshold
-  weight** rather than continuing until `N - 1` nodes are assigned.
-
 ### Performance
 
 - The screened graph is stored sparsely and peeled with a lazily-updated
-  min-heap, so a peeling pass costs `O(E log E)` rather than `O(N^2)`.
+  min-heap, so a peeling pass costs `O(E log E)` rather than `O(N^2)` in
+  the number of nodes.
 - A permutation places only the surviving edges, `O(E)` rather than
   `O(N^2)`, using the fact that permuting a screened weight vector is
   equivalent in distribution to choosing `E` positions at random and
   dealing the surviving weights into them.
-- End to end this is roughly 8 to 14 times faster than a vectorized R
-  port of the reference algorithm. See `benchmarks/benchmark.R`.
+- A 200-permutation test on a 400-node connectome takes about 0.4 s
+  single-core. See `benchmarks/benchmark.R`.
 - Permutations seed their own RNG streams from their absolute index, so
   results depend on `seed` alone and never on `n_cores` or on how work
   was chunked.

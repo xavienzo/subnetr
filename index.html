@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Detection and Power Analysis for Predictor-Associated Functional Connectivity Subnetworks">
-<meta name="description" content="Identifies connected subnetworks of the functional connectome whose edges are associated with a predictor of interest, and provides simulation-based power analysis for study planning. Edge-level association statistics are screened into a weighted graph, a generalized densest-subgraph objective is optimized by greedy peeling to extract candidate subnetworks, and family-wise error rate is controlled by a max-statistic permutation test. The peeling and permutation machinery is implemented in C++ over a sparse representation of the screened graph, roughly an order of magnitude faster end to end than an equivalent vectorized implementation of the reference algorithm, which makes the repeated model fitting required for power analysis practical. Methods follow Wu et al. (2022) &lt;doi:10.1111/biom.13537&gt; and Chen et al. (2023) &lt;doi:10.1093/biostatistics/kxad007&gt;.">
-<meta property="og:description" content="Identifies connected subnetworks of the functional connectome whose edges are associated with a predictor of interest, and provides simulation-based power analysis for study planning. Edge-level association statistics are screened into a weighted graph, a generalized densest-subgraph objective is optimized by greedy peeling to extract candidate subnetworks, and family-wise error rate is controlled by a max-statistic permutation test. The peeling and permutation machinery is implemented in C++ over a sparse representation of the screened graph, roughly an order of magnitude faster end to end than an equivalent vectorized implementation of the reference algorithm, which makes the repeated model fitting required for power analysis practical. Methods follow Wu et al. (2022) &lt;doi:10.1111/biom.13537&gt; and Chen et al. (2023) &lt;doi:10.1093/biostatistics/kxad007&gt;.">
+<meta name="description" content="Identifies connected subnetworks of the functional connectome whose edges are associated with a predictor of interest, and provides simulation-based power analysis for study planning. Edge-level association statistics are screened into a weighted graph, a generalized densest-subgraph objective is optimized by greedy peeling to extract candidate subnetworks, and family-wise error rate is controlled by a max-statistic permutation test that accounts for the data-driven choice of screening threshold. The peeling and permutation machinery is implemented in C++ over a sparse representation of the screened graph, which makes the repeated model fitting required for power analysis practical. Methods follow Wu et al. (2022) &lt;doi:10.1111/biom.13537&gt; and Chen et al. (2023) &lt;doi:10.1093/biostatistics/kxad007&gt;.">
+<meta property="og:description" content="Identifies connected subnetworks of the functional connectome whose edges are associated with a predictor of interest, and provides simulation-based power analysis for study planning. Edge-level association statistics are screened into a weighted graph, a generalized densest-subgraph objective is optimized by greedy peeling to extract candidate subnetworks, and family-wise error rate is controlled by a max-statistic permutation test that accounts for the data-driven choice of screening threshold. The peeling and permutation machinery is implemented in C++ over a sparse representation of the screened graph, which makes the repeated model fitting required for power analysis practical. Methods follow Wu et al. (2022) &lt;doi:10.1111/biom.13537&gt; and Chen et al. (2023) &lt;doi:10.1093/biostatistics/kxad007&gt;.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -76,201 +76,170 @@
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/xavienzo/subnetr" class="external-link">subnetr</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sim</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/simulate_fc.html">simulate_fc</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">120</span>, n_nodes <span class="op">=</span> <span class="fl">80</span>, cluster_size <span class="op">=</span> <span class="fl">20</span>,</span>
-<span>                   f2 <span class="op">=</span> <span class="fl">0.1</span>, seed <span class="op">=</span> <span class="fl">2024</span><span class="op">)</span></span>
+<span>                   f2 <span class="op">=</span> <span class="fl">0.06</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">W</span>   <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">W</span>                      <span class="co"># -log10 p per edge; edge_stats() builds this</span></span>
+<span><span class="va">W</span>   <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">W</span>                       <span class="co"># -log10 p per edge, from edge_stats()</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">W</span>, n_perm <span class="op">=</span> <span class="fl">999</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">fit</span></span>
 <span><span class="co">#&gt; Predictor-associated subnetworks</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   nodes       : 80   edges: 3160</span></span>
-<span><span class="co">#&gt;   objective   : sicers (lambda = 0.50)</span></span>
-<span><span class="co">#&gt;   threshold   : 1.417   (10.0% of edges retained)</span></span>
+<span><span class="co">#&gt;   objective   : generalized (lambda = 0.50)</span></span>
+<span><span class="co">#&gt;   threshold   : 1.41   (10.0% of edges retained)</span></span>
 <span><span class="co">#&gt;   permutations: 999   alpha: 0.05</span></span>
 <span><span class="co">#&gt;   tuning      : calibrated criterion</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;  subnet size edges density p_value significant log10_stat</span></span>
-<span><span class="co">#&gt;       1   20   137   0.721   0.001        TRUE      -91.8</span></span>
-<span><span class="co">#&gt;       2   45    86   0.087   1.000       FALSE        0.0</span></span>
+<span><span class="co">#&gt;       1   20   146   0.768   0.001        TRUE     -104.5</span></span>
+<span><span class="co">#&gt;       2   44    82   0.087   1.000       FALSE        0.0</span></span>
 <span><span class="co">#&gt;       3    4     2   0.333   1.000       FALSE       -0.9</span></span>
-<span><span class="co">#&gt;       4    4     2   0.333   1.000       FALSE       -0.9</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; 1 of 4 subnetworks significant at FWER 0.05.</span></span>
+<span><span class="co">#&gt; 1 of 3 subnetworks significant at FWER 0.05.</span></span>
 <span><span class="co">#&gt; P-values are max-statistic permutation p-values and are already</span></span>
 <span><span class="co">#&gt; family-wise-error corrected; do not adjust them again.</span></span></code></pre></div>
-<p>The detected subnetwork lines up with the planted one:</p>
+<p>With real data, replace the first two lines with</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/dice.html">dice</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">subnetworks</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="va">sim</span><span class="op">$</span><span class="va">truth</span><span class="op">$</span><span class="va">nodes</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1</span></span></code></pre></div>
-<p>From raw data, <code><a href="reference/edge_stats.html">edge_stats()</a></code> is the step that produces <code>W</code>:</p>
+<code class="sourceCode R"><span><span class="va">W</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/edge_stats.html">edge_stats</a></span><span class="op">(</span><span class="va">fc</span>, x <span class="op">=</span> <span class="va">predictor</span>, covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">age</span>, <span class="va">sex</span>, <span class="va">motion</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>where <code>fc</code> is either an <code>n_subject</code> × <code>n_edge</code> matrix or an <code>n_node</code> × <code>n_node</code> × <code>n_subject</code> array. Every edge is regressed on the predictor with the covariates partialled out, and the returned matrix carries the resulting evidence.</p>
+<p>The reported p-values are already corrected for multiplicity across every subnetwork the algorithm returned — do not adjust them again.</p>
+<div class="section level3">
+<h3 id="seeing-the-result">Seeing the result<a class="anchor" aria-label="anchor" href="#seeing-the-result"></a>
+</h3>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">W</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/edge_stats.html">edge_stats</a></span><span class="op">(</span><span class="va">fc</span>, x <span class="op">=</span> <span class="va">predictor</span>, covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">age</span>, <span class="va">sex</span>, <span class="va">motion</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">W</span>, n_perm <span class="op">=</span> <span class="fl">999</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> reorders the matrix so the subnetworks sit in blocks on the diagonal and outlines the significant ones.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">4</span>, <span class="fl">3</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, what <span class="op">=</span> <span class="st">"observed"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="reference/figures/README-heatmap-1.png" alt="plot of chunk heatmap" width="100%"><p class="caption">
+<img src="reference/figures/README-heatmap-1.png" alt="Connectivity matrix with nodes reordered so detected subnetworks form diagonal blocks" width="100%"><p class="caption">
 plot of chunk heatmap
 </p>
 </div>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div>
+<p>Nodes are reordered so that each extracted subnetwork occupies a contiguous block on the diagonal; significant blocks are outlined. The colour scale is labelled with the statistic being displayed — here <code>-log10(p)</code>, because that is what <code><a href="reference/edge_stats.html">edge_stats()</a></code> produced. Pass <code>weight_label</code> to set it yourself for a matrix built by other means.</p>
+<p>The node membership is available directly:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">subnetworks</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>        <span class="co"># node indices of the top subnetwork</span></span>
+<span><span class="co">#&gt;  [1]  7 47 35 21 19 43 61 71 58 73 24 45 33  8 17 23 37 48 42 74</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="reference/membership.html">membership</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>      <span class="co"># 0 = background</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  0  1 </span></span>
+<span><span class="co">#&gt; 60 20</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="power-analysis">Power analysis<a class="anchor" aria-label="anchor" href="#power-analysis"></a>
 </h2>
-<p>The question a study designer actually has is “how many subjects?”. <code><a href="reference/power_curve.html">power_curve()</a></code> answers it by simulating the whole pipeline across a grid of sample sizes.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pw</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/power_curve.html">power_curve</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">100</span>, <span class="fl">140</span>, <span class="fl">180</span>, <span class="fl">220</span><span class="op">)</span>,</span>
-<span>                  n_nodes <span class="op">=</span> <span class="fl">100</span>, cluster_size <span class="op">=</span> <span class="fl">15</span>, f2 <span class="op">=</span> <span class="fl">0.02</span>,</span>
+<p>How many subjects do you need? <code><a href="reference/power_curve.html">power_curve()</a></code> simulates the whole pipeline, permutation test included, across a grid of sample sizes.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pw</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/power_curve.html">power_curve</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">60</span>, <span class="fl">80</span>, <span class="fl">120</span>, <span class="fl">160</span><span class="op">)</span>,</span>
+<span>                  n_nodes <span class="op">=</span> <span class="fl">80</span>, cluster_size <span class="op">=</span> <span class="fl">20</span>, f2 <span class="op">=</span> <span class="fl">0.06</span>,</span>
 <span>                  n_sim <span class="op">=</span> <span class="fl">200</span>, n_perm <span class="op">=</span> <span class="fl">199</span>, seed <span class="op">=</span> <span class="fl">7</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">pw</span></span>
 <span><span class="co">#&gt; Power analysis for subnetwork detection</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   nodes           : 100</span></span>
-<span><span class="co">#&gt;   planted subnets : 15 (sizes)</span></span>
-<span><span class="co">#&gt;   effect size f2  : 0.02</span></span>
+<span><span class="co">#&gt;   nodes           : 80</span></span>
+<span><span class="co">#&gt;   planted subnets : 20 (sizes)</span></span>
+<span><span class="co">#&gt;   effect size f2  : 0.06</span></span>
 <span><span class="co">#&gt;   rho_in / rho_out: 0.90 / 0.020</span></span>
 <span><span class="co">#&gt;   replicates      : 200   permutations: 199   alpha: 0.05</span></span>
 <span><span class="co">#&gt;   Dice cutoff     : 0.50</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;    n         power      recovery  dice n_sig</span></span>
-<span><span class="co">#&gt;   60 0.070 (0.018) 0.020 (0.010) 0.028  0.07</span></span>
-<span><span class="co">#&gt;  100 0.165 (0.026) 0.105 (0.022) 0.100  0.16</span></span>
-<span><span class="co">#&gt;  140 0.415 (0.035) 0.410 (0.035) 0.323  0.42</span></span>
-<span><span class="co">#&gt;  180 0.750 (0.031) 0.735 (0.031) 0.597  0.76</span></span>
-<span><span class="co">#&gt;  220 0.890 (0.022) 0.890 (0.022) 0.752  0.89</span></span>
+<span><span class="co">#&gt;   40 0.955 (0.015) 0.955 (0.015) 0.816  0.96</span></span>
+<span><span class="co">#&gt;   60 1.000 (0.000) 1.000 (0.000) 0.938  1.00</span></span>
+<span><span class="co">#&gt;   80 1.000 (0.000) 1.000 (0.000) 0.976  1.00</span></span>
+<span><span class="co">#&gt;  120 1.000 (0.000) 1.000 (0.000) 0.993  1.00</span></span>
+<span><span class="co">#&gt;  160 1.000 (0.000) 1.000 (0.000) 0.997  1.00</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Power and recovery show the estimate with its Monte Carlo standard</span></span>
 <span><span class="co">#&gt; error in parentheses.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pw</span>, target <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="reference/figures/README-power-1.png" alt="plot of chunk power" width="100%"><p class="caption">
+<img src="reference/figures/README-power-1.png" alt="Power curves against sample size for any detection and for correct recovery" width="100%"><p class="caption">
 plot of chunk power
 </p>
 </div>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<p>Two curves are reported because they answer different questions. <strong>Power</strong> is the chance of declaring <em>any</em> subnetwork significant. <strong>Recovery</strong> is the chance of finding one that actually overlaps the true subnetwork, at Sørensen–Dice ≥ <code>dice_cut</code>. Recovery is always the harder bar, and it is the one to quote when the scientific claim is about <em>which</em> regions are involved.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/required_n.html">required_n</a></span><span class="op">(</span><span class="va">pw</span>, target <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 196.7742</span></span></code></pre></div>
-<p>Two power curves are reported, and the distinction matters. <strong>Any detection</strong> is conventional power: something was declared significant. <strong>Recovery</strong> additionally requires the significant subnetwork to actually overlap the true one (Dice ≥ 0.5 by default). A study can comfortably clear the first bar while failing the second — big enough to see that something is there, too small to say where.</p>
-<p>One warning worth taking seriously: nothing moves power as much as where the screening threshold sits. A subnetwork of <code>c</code> nodes spans <code>c(c-1)/2</code> edges, and if screening retains fewer edges than that in the whole graph, no sample size will recover it. In an 80-node connectome with a 20-node subnetwork at f² = 0.06 and n = 120, recovery runs 0.30 at the 99th percentile, 0.95 at the 97.5th and 1.00 at the 95th — from the threshold alone, because the subnetwork spans 190 edges while the 99th percentile keeps only 32 in the entire graph. <code><a href="reference/power_curve.html">power_curve()</a></code> scales its default with the design to keep this from silently dominating the answer, but any power you quote is a statement about a particular screening choice. Set <code>tune_each = TRUE</code> to simulate the procedure you will actually run, threshold selection included.</p>
+<span><span class="co">#&gt; [1] 40</span></span></code></pre></div>
+<p>Effect sizes are Cohen’s <code>f²</code> for a single edge. <code>rho_in</code> controls what fraction of the subnetwork’s edges actually carry the effect — real subnetworks are not uniformly affected, and the default of 0.9 is deliberately not 1.</p>
 </div>
 <div class="section level2">
-<h2 id="what-changed-relative-to-the-matlab-implementation">What changed relative to the MATLAB implementation<a class="anchor" aria-label="anchor" href="#what-changed-relative-to-the-matlab-implementation"></a>
+<h2 id="how-it-works">How it works<a class="anchor" aria-label="anchor" href="#how-it-works"></a>
 </h2>
-<p>This package is a reimplementation of the <code>Subnet</code> MATLAB tool, not a transliteration. Four changes are worth knowing about.</p>
+<p><strong>1. Screen.</strong> Edge statistics are thresholded, keeping the strongest few percent. Everything below the threshold is set to zero.</p>
+<p><strong>2. Extract.</strong> Greedy peeling repeatedly deletes the lowest-degree node and scores the set that remains after each deletion, keeping the best-scoring set. A set of <code>n</code> nodes holding total weight <code>w</code> scores</p>
+<pre><code><span><span class="va">w</span> <span class="op">/</span> <span class="va">n</span><span class="op">^</span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">lambda</span><span class="op">)</span></span></code></pre>
+<p><code>lambda</code> sets how hard size is penalized. At <code>lambda = 0.5</code> this is average degree, the classical densest-subgraph criterion; as <code>lambda</code> approaches 1 it becomes edge density and favours small tight cliques; at <code>lambda = 0</code> it returns the whole graph. Values between 0.5 and 0.7 are the usual working range. The nodes peeled away feed the next round, so several subnetworks come out in decreasing order of density.</p>
+<p><strong>3. Test.</strong> Each block is scored by the upper-tail binomial probability of containing as many supra-threshold edges as it does, given the graph’s overall rate. Because block size enters as the binomial sample size, blocks of different sizes are comparable. The null redistributes edge weights at random and reruns the <em>entire</em> extraction, recording the single most extreme block each time — a Westfall–Young max-statistic procedure, so family-wise error is controlled across all blocks with no further correction.</p>
 <div class="section level3">
-<h3 id="id_1-lambda-had-no-effect">1. <code>lambda</code> had no effect<a class="anchor" aria-label="anchor" href="#id_1-lambda-had-no-effect"></a>
+<h3 id="the-threshold-is-chosen-for-you-and-honestly">The threshold is chosen for you, and honestly<a class="anchor" aria-label="anchor" href="#the-threshold-is-chosen-for-you-and-honestly"></a>
 </h3>
-<p>The reference <code>greedy_peeling_v2.m</code> scores a candidate set as</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode matlab"><code class="sourceCode matlab"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="va">score_temp</span> <span class="op">=</span> (<span class="va">sum_wp_temp</span> <span class="op">/</span> <span class="fl">2</span>) <span class="op">./</span> ((<span class="va">N</span> <span class="op">-</span> <span class="va">ite</span>) <span class="op">*</span> (<span class="fl">2</span> <span class="op">*</span> <span class="va">lambda</span>))<span class="op">;</span></span></code></pre></div>
-<p><code>lambda</code> is fixed within a call, so dividing by <code>2 * lambda</code> is a positive constant and cannot move the <code>argmax</code>. The objective is therefore Charikar’s average degree, with <code>lambda</code> inert — which also makes the <code>lambda</code> search in <code>param_tuning.m</code> a no-op that always returns the first grid value.</p>
-<p><code>subnetr</code> restores the generalized objective of Chen et al. (2023), <code>(w/m)^lambda * w^(1-lambda)</code>, where <code>lambda</code> genuinely trades block density against block size. The original behaviour is still available for reproducing published results:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/subnet_extract.html">subnet_extract</a></span><span class="op">(</span><span class="va">W</span>, <span class="va">threshold</span>, objective <span class="op">=</span> <span class="st">"avg_degree"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="id_2-tuning-on-the-data-inflated-the-type-i-error">2. Tuning on the data inflated the type-I error<a class="anchor" aria-label="anchor" href="#id_2-tuning-on-the-data-inflated-the-type-i-error"></a>
-</h3>
-<p>Selecting the threshold and <code>lambda</code> from the same matrix you then test, while the permutation null is computed at the selected values only, is optimistic: the search got to find the most structured-looking setting and the null never did. Under the global null this roughly doubles the error rate.</p>
-<p><code>subnetr</code> makes every permutation run the same parameter search the observed data ran. Measured over 400 null replicates at 60 nodes:</p>
-<table style="width:100%;" class="table">
-<colgroup>
-<col width="40%">
-<col width="19%">
-<col width="19%">
-<col width="19%">
-</colgroup>
+<p><code>threshold</code> and <code>lambda</code> default to <code>NULL</code>, in which case <code><a href="reference/tune_subnet.html">tune_subnet()</a></code> selects them by comparing each candidate against its own permutation null, so that settings producing graphs of very different sparsity remain comparable.</p>
+<p>Choosing the threshold from the same matrix you then test is a selection effect, and ignoring it roughly doubles the type-I error — a nominal 5% test runs at about 10%. <code><a href="reference/subnet.html">subnet()</a></code> handles this by having every permutation run the same selection the observed data ran, which restores calibration:</p>
+<table class="table">
 <thead><tr>
 <th>null</th>
-<th>nominal 0.05</th>
-<th>nominal 0.10</th>
-<th>nominal 0.20</th>
+<th>type-I error at α = 0.05</th>
 </tr></thead>
 <tbody>
 <tr>
-<td>
-<code>"selected"</code> (as published)</td>
-<td>0.100</td>
-<td>0.177</td>
-<td>0.315</td>
+<td>uncorrected</td>
+<td>0.10</td>
 </tr>
 <tr>
 <td>
-<code>"grid"</code> (conservative)</td>
-<td>0.013</td>
-<td>0.020</td>
-<td>0.033</td>
-</tr>
-<tr>
-<td>
-<code>"retune"</code> (<strong>default</strong>)</td>
-<td>0.035</td>
-<td>0.087</td>
-<td>0.207</td>
+<code>subnetr</code> default (<code>"retune"</code>)</td>
+<td>0.04</td>
 </tr>
 </tbody>
 </table>
-<p><code>"retune"</code> is not just valid but calibrated, and it keeps most of the power the invalid version appeared to have — at f² = 0.035 it recovers the planted subnetwork 26.5% of the time versus 28.0% for the uncorrected test and 20.0% for the conservative one.</p>
-<p>The trick that makes it affordable: the tuning rule is a fixed function once its null moments are known, and those moments describe the very distribution a permuted data set is drawn from, so they are estimated once and reused instead of being re-estimated inside every permutation.</p>
+<p>If you fix <code>threshold</code> and <code>lambda</code> in advance, no selection occurs and the ordinary null is used automatically.</p>
 </div>
-<div class="section level3">
-<h3 id="id_3-the-screened-graph-is-sparse-so-stop-storing-it-densely">3. The screened graph is sparse, so stop storing it densely<a class="anchor" aria-label="anchor" href="#id_3-the-screened-graph-is-sparse-so-stop-storing-it-densely"></a>
-</h3>
-<p>Screening keeps a high quantile of the edge weights — the top 1% is typical. The reference implementation still carries a dense <code>N × N</code> matrix and reallocates a shrinking copy of it at every node removal. At 400 nodes screened at the 99th percentile that is 79,800 matrix entries visited to reach 798 real edges.</p>
-<p><code>subnetr</code> keeps the screened graph in compressed-row form and peels with a lazily-updated min-heap, so a peeling pass costs <code>O(E log E)</code> instead of <code>O(N²)</code>. Permutations get the same treatment: permuting the screened weight vector and keeping its non-zeros is, in distribution, the same as choosing <code>E</code> of the <code>M</code> positions at random and dealing the surviving weights into them, so a permutation costs <code>O(E)</code> rather than <code>O(N²)</code>.</p>
+</div>
+<div class="section level2">
+<h2 id="performance-and-reproducibility">Performance and reproducibility<a class="anchor" aria-label="anchor" href="#performance-and-reproducibility"></a>
+</h2>
+<p>The screened graph is sparse by construction, and the compiled core exploits that: peeling runs over a compressed sparse representation with a lazily-updated min-heap, and permutations place only the surviving edges rather than rebuilding a dense matrix. Indicative single-core timings:</p>
 <table class="table">
 <thead><tr>
 <th>nodes</th>
-<th>100 permutations, reference</th>
-<th><code>subnetr</code></th>
-<th>speedup</th>
+<th>edges</th>
+<th>200-permutation test</th>
 </tr></thead>
 <tbody>
 <tr>
 <td>100</td>
-<td>0.12 s</td>
-<td>0.009 s</td>
-<td>14×</td>
+<td>4,950</td>
+<td>0.01 s</td>
 </tr>
 <tr>
 <td>200</td>
-<td>0.33 s</td>
-<td>0.039 s</td>
-<td>8×</td>
+<td>19,900</td>
+<td>0.08 s</td>
+</tr>
+<tr>
+<td>400</td>
+<td>79,800</td>
+<td>0.41 s</td>
 </tr>
 </tbody>
 </table>
-<p>The baseline is a line-by-line R port of <code>greedy_final_v2.m</code> (<code>tests/testthat/helper-reference.R</code>), which is already fully vectorized; the compiled core is checked against it for exact agreement in the test suite. Run <code>Rscript benchmarks/benchmark.R</code> to reproduce.</p>
-</div>
-<div class="section level3">
-<h3 id="id_4-power-analysis-does-not-need-subject-level-data">4. Power analysis does not need subject-level data<a class="anchor" aria-label="anchor" href="#id_4-power-analysis-does-not-need-subject-level-data"></a>
-</h3>
-<p>Simulating a study by building an <code>n × n_edge</code> matrix and regressing every column is wasteful when all you need is the edge statistics. Under the linear model with fixed design, an edge with effect size f² has</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>∼</mo><msub><mi>t</mi><mrow><mi>d</mi><mi>f</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">p</mi></mrow><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">p</mi></mrow><mo>=</mo><msqrt><mrow><msup><mi>f</mi><mn>2</mn></msup><mi>S</mi></mrow></msqrt><mo>,</mo><mspace width="2.0em"></mspace><mi>S</mi><mo>∼</mo><msubsup><mi>χ</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn><mo>−</mo><mi>q</mi></mrow><mn>2</mn></msubsup><mo>,</mo></mrow><annotation encoding="application/x-tex">t \sim t_{df}(\mathrm{ncp}), \qquad \mathrm{ncp} = \sqrt{f^2 S}, \qquad
-S \sim \chi^2_{n-1-q},</annotation></semantics></math></p>
-<p>with <code>S</code> drawn once per data set — which is exactly what couples all the edges through the shared predictor. <code><a href="reference/simulate_fc.html">simulate_fc()</a></code> samples from this directly. It is exact, not an approximation, and it is what makes 40,000 pipeline fits run in about three seconds on one core.</p>
-<p><code>method = "data"</code> still builds the full subject-level data set when you need it, including a <code>edge_corr</code> knob for cross-edge dependence.</p>
-</div>
+<p>A 200-replicate power curve at 100 nodes takes a few seconds.</p>
+<p>Every permutation seeds its own random stream from its index, so results depend on <code>seed</code> alone — never on <code>n_cores</code> or on how work is split across workers. <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> before an unseeded call is enough to make a run reproducible. <code>n_cores &gt; 1</code> uses OpenMP threads where the toolchain provides them (check with <code><a href="reference/has_openmp.html">has_openmp()</a></code>) and forked R workers otherwise.</p>
 </div>
 <div class="section level2">
-<h2 id="reproducibility-and-parallelism">Reproducibility and parallelism<a class="anchor" aria-label="anchor" href="#reproducibility-and-parallelism"></a>
+<h2 id="learn-more">Learn more<a class="anchor" aria-label="anchor" href="#learn-more"></a>
 </h2>
-<p>Every permutation seeds its own RNG stream from its absolute index, so results depend on <code>seed</code> alone — never on <code>n_cores</code>, and never on how work was chunked across workers. This is asserted in the test suite.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">W</span>, n_perm <span class="op">=</span> <span class="fl">999</span>, seed <span class="op">=</span> <span class="fl">1</span>, n_cores <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>   <span class="co"># identical to n_cores = 1</span></span></code></pre></div>
-<p>The permutation loop uses OpenMP where the toolchain provides it and forked R workers otherwise. <code><a href="reference/has_openmp.html">has_openmp()</a></code> reports which you have. The default Apple clang on macOS ships without OpenMP, so <code>n_cores</code> there uses forked workers.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"subnetr"</span><span class="op">)</span>          <span class="co"># the analysis pipeline, step by step</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"power-analysis"</span><span class="op">)</span>   <span class="co"># designing a study</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<p>Chen S, Zhang Y, Wu Q, Bi C, Kochunov P, Hong LE (2023). Identifying covariate-related subnetworks for whole-brain connectome analysis. <em>Biostatistics</em>, kxad007.</p>
-<p>Wu Q, Huang X, Culbreth AJ, Waltz JA, Hong LE, Chen S (2022). Extracting brain disease-related connectome subgraphs by adaptive dense subgraph discovery. <em>Biometrics</em> 78(4), 1566–1578.</p>
+<p>Chen S, Zhang Y, Wu Q, Bi C, Kochunov P, Hong LE (2023). Identifying covariate-related subnetworks for whole-brain connectome analysis. <em>Biostatistics</em>, kxad007. <a href="https://doi.org/10.1093/biostatistics/kxad007" class="external-link">doi:10.1093/biostatistics/kxad007</a></p>
+<p>Wu Q, Huang X, Culbreth AJ, Waltz JA, Hong LE, Chen S (2022). Extracting brain disease-related connectome subgraphs by adaptive dense subgraph discovery. <em>Biometrics</em> 78(4), 1566–1578. <a href="https://doi.org/10.1111/biom.13537" class="external-link">doi:10.1111/biom.13537</a></p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>

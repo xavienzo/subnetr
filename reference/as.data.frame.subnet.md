@@ -37,10 +37,7 @@ sim <- simulate_fc(n = 100, n_nodes = 60, cluster_size = 12, f2 = 0.2,
 as.data.frame(subnet(sim$W, n_perm = 99, seed = 1))
 #>   subnet size edges   density   statistic p_value significant
 #> 1      1   12    59 0.8939394 -116.103772    0.01        TRUE
-#> 2      2    8     9 0.3214286   -6.748776    1.00       FALSE
-#> 3      3    5     4 0.4000000   -4.358685    1.00       FALSE
-#> 4      4   14    14 0.1538462   -2.683971    1.00       FALSE
-#> 5      5    5     3 0.3000000   -2.656538    1.00       FALSE
-#> 6      6    4     2 0.3333333   -2.169235    1.00       FALSE
-#> 7      7    3     2 0.6666667   -3.575551    1.00       FALSE
+#> 2      2   26    39 0.1200000   -2.005758    1.00       FALSE
+#> 3      3    8     8 0.2857143   -5.308157    1.00       FALSE
+#> 4      4    7     4 0.1904762   -1.884103    1.00       FALSE
 ```
