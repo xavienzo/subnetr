@@ -28,7 +28,7 @@ Sizing a study before you run it.
 ## Inspecting results
 
 - [`plot(`*`<subnet>`*`)`](https://xavienzo.github.io/subnetr/reference/plot.subnet.md)
-  : Plot the reordered connectivity matrix
+  : Plot the connectivity matrix
 - [`plot(`*`<subnet_power>`*`)`](https://xavienzo.github.io/subnetr/reference/plot.subnet_power.md)
   : Plot a power curve
 - [`as.data.frame(`*`<subnet>`*`)`](https://xavienzo.github.io/subnetr/reference/as.data.frame.subnet.md)

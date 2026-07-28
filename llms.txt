@@ -78,21 +78,30 @@ every subnetwork the algorithm returned — do not adjust them again.
 
 ``` r
 
-plot(fit)
+plot(fit, what = "both")
 ```
 
-![Connectivity matrix with nodes reordered so detected subnetworks form
-diagonal blocks](reference/figures/README-heatmap-1.png)
+![Left: connectivity matrix in its original node order, showing no
+visible structure. Right: the same matrix reordered so the detected
+subnetwork forms an outlined block on the
+diagonal.](reference/figures/README-heatmap-1.png)
 
 plot of chunk heatmap
 
-Nodes are reordered so that each extracted subnetwork occupies a
-contiguous block on the diagonal; significant blocks are outlined. The
-colour scale is labelled with the statistic being displayed — here
-`-log10(p)`, because that is what
+On the left, the matrix as measured: the subnetwork is there, but
+scattered across arbitrary node indices and invisible. On the right, the
+same numbers with nodes reordered so each extracted subnetwork occupies
+a contiguous block on the diagonal; significant blocks are outlined.
+Both panels share one colour scale, labelled with the statistic being
+displayed — here `-log10(p)`, because that is what
 [`edge_stats()`](https://xavienzo.github.io/subnetr/reference/edge_stats.md)
 produced. Pass `weight_label` to set it yourself for a matrix built by
 other means.
+
+Always look at both panels. Reordering is a permutation, and a
+permutation can make noise look organized; the comparison is what tells
+you whether the block is real. The permutation test is the formal
+version of that same check.
 
 The node membership is available directly:
 
@@ -115,34 +124,35 @@ of sample sizes.
 
 ``` r
 
-pw <- power_curve(n = c(40, 60, 80, 120, 160),
-                  n_nodes = 80, cluster_size = 20, f2 = 0.06,
+pw <- power_curve(n = c(30, 60, 100, 150, 220),
+                  n_nodes = 80, cluster_size = 15, f2 = 0.025,
                   n_sim = 200, n_perm = 199, seed = 7, progress = FALSE)
 
 pw
 #> Power analysis for subnetwork detection
 #> 
 #>   nodes           : 80
-#>   planted subnets : 20 (sizes)
-#>   effect size f2  : 0.06
+#>   planted subnets : 15 (sizes)
+#>   effect size f2  : 0.025
 #>   rho_in / rho_out: 0.90 / 0.020
 #>   replicates      : 200   permutations: 199   alpha: 0.05
 #>   Dice cutoff     : 0.50
 #> 
 #>    n         power      recovery  dice n_sig
-#>   40 0.955 (0.015) 0.955 (0.015) 0.816  0.96
-#>   60 1.000 (0.000) 1.000 (0.000) 0.938  1.00
-#>   80 1.000 (0.000) 1.000 (0.000) 0.976  1.00
-#>  120 1.000 (0.000) 1.000 (0.000) 0.993  1.00
-#>  160 1.000 (0.000) 1.000 (0.000) 0.997  1.00
+#>   30 0.065 (0.017) 0.020 (0.010) 0.024  0.06
+#>   60 0.155 (0.026) 0.125 (0.023) 0.096  0.16
+#>  100 0.605 (0.035) 0.595 (0.035) 0.488  0.60
+#>  150 0.955 (0.015) 0.955 (0.015) 0.853  0.96
+#>  220 1.000 (0.000) 1.000 (0.000) 0.960  1.00
 #> 
 #> Power and recovery show the estimate with its Monte Carlo standard
 #> error in parentheses.
 plot(pw, target = 0.8)
 ```
 
-![Power curves against sample size for any detection and for correct
-recovery](reference/figures/README-power-1.png)
+![Power curves against sample size, rising from near zero to one, for
+any detection and for correct recovery of the planted
+subnetwork](reference/figures/README-power-1.png)
 
 plot of chunk power
 
@@ -156,7 +166,7 @@ about *which* regions are involved.
 ``` r
 
 required_n(pw, target = 0.8)
-#> [1] 40
+#> [1] 128.4722
 ```
 
 Effect sizes are Cohen’s `f²` for a single edge. `rho_in` controls what
@@ -293,7 +303,7 @@ Sizing a study before you run it.
 ## Inspecting results
 
 - [`plot(`*`<subnet>`*`)`](https://xavienzo.github.io/subnetr/reference/plot.subnet.md)
-  : Plot the reordered connectivity matrix
+  : Plot the connectivity matrix
 - [`plot(`*`<subnet_power>`*`)`](https://xavienzo.github.io/subnetr/reference/plot.subnet_power.md)
   : Plot a power curve
 - [`as.data.frame(`*`<subnet>`*`)`](https://xavienzo.github.io/subnetr/reference/as.data.frame.subnet.md)

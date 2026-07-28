@@ -1,9 +1,8 @@
-# Plot the reordered connectivity matrix
+# Plot the connectivity matrix
 
-Draws the edge-weight matrix with nodes reordered so that the extracted
-subnetworks sit in consecutive blocks along the diagonal, and outlines
-the significant blocks. This is the plot to look at when judging whether
-a detection is a compact subnetwork or a diffuse smear.
+Draws the edge-weight matrix, optionally with nodes reordered so that
+the extracted subnetworks sit in consecutive blocks along the diagonal,
+and outlines the significant blocks.
 
 ## Usage
 
@@ -11,7 +10,7 @@ a detection is a compact subnetwork or a diffuse smear.
 # S3 method for class 'subnet'
 plot(
   x,
-  what = c("reordered", "observed"),
+  what = c("reordered", "observed", "both"),
   significant_only = TRUE,
   col = grDevices::hcl.colors(64, "Inferno"),
   main = NULL,
@@ -29,8 +28,8 @@ plot(
 
 - what:
 
-  `"reordered"` (default) or `"observed"` for the matrix in its original
-  node order.
+  `"reordered"` (default), `"observed"` for the original node order, or
+  `"both"` for the two side by side.
 
 - significant_only:
 
@@ -42,7 +41,7 @@ plot(
 
 - main:
 
-  Plot title.
+  Panel title, or a vector of two when `what = "both"`.
 
 - weight_label:
 
@@ -66,6 +65,14 @@ plot(
 
 ## Details
 
+`what = "both"` puts the matrix as measured next to the reordered
+version, sharing one colour scale. That pairing is the honest way to
+present a result: a subnetwork is invisible in the original node
+ordering and obvious after reordering, and showing only the second panel
+can make an arbitrary permutation look like a discovery. Comparing the
+two is also how you judge whether a detection is a compact block or a
+diffuse smear.
+
 The colour scale is labelled with the quantity being displayed. When `W`
 came from
 [`edge_stats()`](https://xavienzo.github.io/subnetr/reference/edge_stats.md)
@@ -81,7 +88,10 @@ else. Supply `weight_label` for matrices built by other means.
 sim <- simulate_fc(n = 120, n_nodes = 60, cluster_size = 12, f2 = 0.2,
                    seed = 11)
 fit <- subnet(sim$W, n_perm = 99, seed = 1)
-plot(fit)
+
+plot(fit)                  # reordered only
+
+plot(fit, what = "both")   # as measured, next to reordered
 
 
 # A matrix of t statistics from a real study labels itself accordingly
