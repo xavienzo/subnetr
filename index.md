@@ -140,6 +140,19 @@ res
 #> 7      7    9    0.17   1.000       FALSE
 ```
 
+Both sit on the diagonal after reordering, outlined:
+
+``` r
+
+plot(fit2)
+```
+
+![Reordered connectivity matrix in which the two detected subnetworks
+appear as two separate outlined blocks of different size along the
+diagonal.](reference/figures/README-multi-heatmap-1.png)
+
+plot of chunk multi-heatmap
+
 Blocks are disjoint by construction — peeling hands the nodes it removes
 to the next round, so each node lands in exactly one — and the p-values
 are jointly corrected across every block returned, significant or not,
