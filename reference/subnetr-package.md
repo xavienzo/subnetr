@@ -26,4 +26,4 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Subnet Developers <yezhipan7@gmail.com>
+**Maintainer**: Yezhi Pan <yezhipan7@gmail.com>

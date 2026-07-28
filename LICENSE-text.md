@@ -1,4 +1,4 @@
 # License
 
     YEAR: 2026
-    COPYRIGHT HOLDER: subnetr authors
+    COPYRIGHT HOLDER: Yezhi Pan
