@@ -1,20 +1,24 @@
 # subnetr
 
-**Find the subnetwork of the connectome that tracks your predictor, and
-work out how many subjects you need to find it.**
+`subnetr` identifies subnetworks of the brain connectome whose edges are
+associated with a predictor of interest, and provides simulation-based
+power analysis for study design. It implements the covariate-related
+subnetwork detection framework of Chen et al. (2023), building on the
+adaptive dense subgraph discovery method of Wu et al. (2022).
 
-Mass-univariate testing of a connectome asks each of ~20,000 edges
-whether it relates to a predictor, then pays a brutal multiplicity
-price. `subnetr` asks a different question: is there a *set of regions*
-whose mutual connections are associated with the predictor? Edges are
-screened into a weighted graph, a generalized densest-subgraph objective
-is optimized by greedy peeling to pull out candidate subnetworks, and a
-max-statistic permutation test assigns each one a
-family-wise-error-controlled p-value.
+Mass-univariate analysis tests each of the tens of thousands of edges in
+a connectome separately and incurs a correspondingly severe
+multiple-comparison burden. Subnetwork detection instead asks whether
+there exists a set of nodes whose mutual connections are jointly
+associated with the predictor. Edge-wise test statistics are screened to
+form a sparse weighted graph, a generalized density objective is
+maximized by greedy peeling to extract candidate subnetworks, and a
+permutation test assigns each of them a p-value that controls the
+family-wise error rate.
 
-The whole pipeline is fast enough to run thousands of times, which is
-what makes the other half of the package possible: simulation-based
-**power analysis**, so you can size a study before you run it.
+The extraction and permutation machinery is implemented in C++, which
+makes it practical to refit the procedure thousands of times and
+therefore to estimate power by simulation.
 
 ## Installation
 
@@ -24,11 +28,11 @@ what makes the other half of the package possible: simulation-based
 remotes::install_github("xavienzo/subnetr")
 ```
 
-## A five-line analysis
+## Basic analysis
 
-Start from subject-level connectivity — an `n_subject` by `n_edge`
-matrix of vectorized connectomes — plus a predictor and any nuisance
-covariates.
+The input is subject-level connectivity: an `n_subject` by `n_edge`
+matrix of vectorized connectomes, together with a predictor and any
+nuisance covariates.
 
 ``` r
 
@@ -59,7 +63,7 @@ fit
 #> family-wise-error corrected; do not adjust them again.
 ```
 
-With real data, replace the first two lines with
+For observed data, the first two lines are replaced by
 
 ``` r
 
@@ -67,14 +71,14 @@ W <- edge_stats(fc, x = predictor, covariates = cbind(age, sex, motion))
 ```
 
 where `fc` is either an `n_subject` × `n_edge` matrix or an `n_node` ×
-`n_node` × `n_subject` array. Every edge is regressed on the predictor
-with the covariates partialled out, and the returned matrix carries the
-resulting evidence.
+`n_node` × `n_subject` array. Each edge is regressed on the predictor
+with the covariates partialled out, and the returned matrix holds the
+resulting edge-wise evidence.
 
-The reported p-values are already corrected for multiplicity across
-every subnetwork the algorithm returned — do not adjust them again.
+The reported p-values are already adjusted for multiplicity across all
+extracted subnetworks and should not be adjusted again.
 
-### Seeing the result
+### Visualizing the result
 
 ``` r
 
@@ -88,26 +92,27 @@ diagonal.](reference/figures/README-heatmap-1.png)
 
 plot of chunk heatmap
 
-On the left, the matrix as measured: the subnetwork is there, but
-scattered across arbitrary node indices and invisible. On the right, the
-same numbers with nodes reordered so each extracted subnetwork occupies
-a contiguous block on the diagonal; significant blocks are outlined.
-Both panels share one colour scale, labelled with the statistic being
-displayed — here `-log10(p)`, because that is what
+The left panel shows the adjacency matrix in the original node order, in
+which the subnetwork is distributed across arbitrary indices and not
+apparent. The right panel shows the same matrix with nodes reordered so
+that each extracted subnetwork occupies a contiguous diagonal block;
+significant blocks are outlined. Both panels use a common colour scale,
+labelled with the statistic displayed — here `-log10(p)`, since that is
+what
 [`edge_stats()`](https://xavienzo.github.io/subnetr/reference/edge_stats.md)
-produced. Pass `weight_label` to set it yourself for a matrix built by
-other means.
+returned. Use `weight_label` to set the label for matrices constructed
+by other means.
 
-Always look at both panels. Reordering is a permutation, and a
-permutation can make noise look organized; the comparison is what tells
-you whether the block is real. The permutation test is the formal
-version of that same check.
+Both panels are worth inspecting. Reordering is a permutation of node
+labels, and a permutation alone can impose apparent structure on noise;
+the comparison between panels indicates whether the block is
+substantive. The permutation test formalizes that comparison.
 
-The node membership is available directly:
+Node membership is available directly:
 
 ``` r
 
-fit$subnetworks[[1]]        # node indices of the top subnetwork
+fit$subnetworks[[1]]        # node indices of the leading subnetwork
 #>  [1]  7 47 35 21 19 43 61 71 58 73 24 45 33  8 17 23 37 48 42 74
 table(membership(fit))      # 0 = background
 #> 
@@ -115,10 +120,11 @@ table(membership(fit))      # 0 = background
 #> 60 20
 ```
 
-### More than one subnetwork
+### Multiple subnetworks
 
-Nothing assumes a single subnetwork. Here two are planted, of different
-sizes and different effect sizes, and both come back separately.
+The method does not assume a single subnetwork. In the following example
+two subnetworks of different size and effect size are planted, and both
+are recovered as separate blocks.
 
 ``` r
 
@@ -140,39 +146,40 @@ res
 #> 7      7    9    0.17   1.000       FALSE
 ```
 
-Both sit on the diagonal after reordering, outlined:
-
 ``` r
 
-plot(fit2)
+plot(fit2, what = "both")
 ```
 
-![Reordered connectivity matrix in which the two detected subnetworks
-appear as two separate outlined blocks of different size along the
-diagonal.](reference/figures/README-multi-heatmap-1.png)
+![Left: connectivity matrix with two planted subnetworks in the original
+node order, showing no visible structure. Right: the same matrix
+reordered, with the two detected subnetworks outlined as separate
+diagonal blocks of different
+size.](reference/figures/README-multi-heatmap-1.png)
 
 plot of chunk multi-heatmap
 
-Blocks are disjoint by construction — peeling hands the nodes it removes
-to the next round, so each node lands in exactly one — and the p-values
-are jointly corrected across every block returned, significant or not,
-because each permutation reruns the whole extraction and contributes
-only its most extreme block. Two significant subnetworks out of seven
-extracted therefore cost no extra multiplicity budget.
+Extracted subnetworks are disjoint by construction: each peeling round
+passes the nodes it removes to the next round, so every node belongs to
+exactly one block. The p-values are corrected jointly across all blocks
+returned, whether or not they reach significance, because each
+permutation repeats the entire extraction and contributes only its most
+extreme block. Reporting two significant subnetworks among seven
+extracted therefore incurs no additional multiplicity penalty.
 
-Two caveats. The null edge rate is computed over the whole graph, so it
-includes signal edges and makes the test conservative when one
-subnetwork is much stronger than another. And a partition cannot
-represent *overlapping* subnetworks: a node shared between two systems
-is assigned to whichever block claims it first. See
+Two qualifications apply. The null edge probability is estimated over
+the whole graph and so includes edges carrying signal, which renders the
+test conservative when one subnetwork is considerably stronger than
+another. A partition also cannot represent *overlapping* subnetworks: a
+node belonging to two systems is assigned to whichever block claims it
+first. See
 [`vignette("multiple-subnetworks")`](https://xavienzo.github.io/subnetr/articles/multiple-subnetworks.md).
 
 ## Power analysis
 
-How many subjects do you need?
 [`power_curve()`](https://xavienzo.github.io/subnetr/reference/power_curve.md)
-simulates the whole pipeline, permutation test included, across a grid
-of sample sizes.
+estimates power by simulating the complete procedure, permutation test
+included, over a grid of sample sizes.
 
 ``` r
 
@@ -208,12 +215,12 @@ subnetwork](reference/figures/README-power-1.png)
 
 plot of chunk power
 
-Two curves are reported because they answer different questions.
-**Power** is the chance of declaring *any* subnetwork significant.
-**Recovery** is the chance of finding one that actually overlaps the
-true subnetwork, at Sørensen–Dice ≥ `dice_cut`. Recovery is always the
-harder bar, and it is the one to quote when the scientific claim is
-about *which* regions are involved.
+Two quantities are reported. **Power** is the probability of declaring
+any subnetwork significant. **Recovery** is the probability of
+identifying one that overlaps the true subnetwork with Sørensen–Dice
+coefficient at least `dice_cut`. Recovery is the more stringent
+criterion, and the appropriate one when the inferential claim concerns
+which nodes are involved.
 
 ``` r
 
@@ -221,92 +228,100 @@ required_n(pw, target = 0.8)
 #> [1] 128.4722
 ```
 
-Effect sizes are Cohen’s `f²` for a single edge. `rho_in` controls what
-fraction of the subnetwork’s edges actually carry the effect — real
-subnetworks are not uniformly affected, and the default of 0.9 is
-deliberately not 1.
+Effect sizes are specified as Cohen’s `f^2` per edge. The argument
+`rho_in` gives the proportion of within-subnetwork edges that carry the
+effect; the default of 0.9 reflects the expectation that a subnetwork is
+not uniformly affected.
 
-## How it works
+## Method
 
-**1. Screen.** Edge statistics are thresholded, keeping the strongest
-few percent. Everything below the threshold is set to zero.
+**Screening.** Edge-wise test statistics, typically `-log10(p)` values,
+are thresholded at a value `r`. Edges below the threshold are set to
+zero, giving a sparse weighted adjacency matrix.
 
-**2. Extract.** Greedy peeling repeatedly deletes the lowest-degree node
-and scores the set that remains after each deletion, keeping the
-best-scoring set. A set of `n` nodes holding total weight `w` scores
+**Extraction.** Candidate subnetworks are obtained by greedy peeling.
+The node of minimum weighted degree is removed repeatedly, the objective
+is evaluated on the node set remaining after each removal, and the
+highest-scoring set is retained as a subnetwork. For a set of `n` nodes
+carrying total edge weight `w` the objective is
 
     w / n^(2 * lambda)
 
-`lambda` sets how hard size is penalized. At `lambda = 0.5` this is
-average degree, the classical densest-subgraph criterion; as `lambda`
-approaches 1 it becomes edge density and favours small tight cliques; at
-`lambda = 0` it returns the whole graph. Values between 0.5 and 0.7 are
-the usual working range. The nodes peeled away feed the next round, so
-several subnetworks come out in decreasing order of density.
+The exponent governs the penalty on subnetwork size. At `lambda = 0.5`
+the criterion reduces to average degree, the classical densest-subgraph
+objective; as `lambda` approaches 1 it approaches edge density and
+favours small, tightly connected sets; at `lambda = 0` it reduces to
+total edge weight and returns the entire graph. Values between 0.5 and
+0.7 are the usual working range. The removed nodes are passed to the
+next round, so successive subnetworks are extracted in decreasing order
+of density.
 
-**3. Test.** Each block is scored by the upper-tail binomial probability
-of containing as many supra-threshold edges as it does, given the
-graph’s overall rate. Because block size enters as the binomial sample
-size, blocks of different sizes are comparable. The null redistributes
-edge weights at random and reruns the *entire* extraction, recording the
-single most extreme block each time — a Westfall–Young max-statistic
-procedure, so family-wise error is controlled across all blocks with no
-further correction.
+**Inference.** Each block is assigned the upper-tail binomial
+probability of containing at least as many supra-threshold edges as
+observed, given the overall supra-threshold edge probability of the
+graph. Because block size enters as the binomial sample size, blocks of
+differing size are placed on a common scale. The null distribution is
+obtained by permuting edge weights across the graph and repeating the
+entire extraction, retaining the most extreme block statistic from each
+permutation. This is a max-statistic (Westfall–Young) procedure and
+controls the family-wise error rate over all extracted subnetworks
+without further correction.
 
-### The threshold is chosen for you, and honestly
+### Parameter selection
 
 `threshold` and `lambda` default to `NULL`, in which case
 [`tune_subnet()`](https://xavienzo.github.io/subnetr/reference/tune_subnet.md)
-selects them by comparing each candidate against its own permutation
-null, so that settings producing graphs of very different sparsity
-remain comparable.
+selects them by standardizing each candidate against its own permutation
+null, so that settings yielding graphs of differing sparsity remain
+comparable.
 
-Choosing the threshold from the same matrix you then test is a selection
-effect, and ignoring it roughly doubles the type-I error — a nominal 5%
-test runs at about 10%.
+Selecting the threshold from the same matrix that is subsequently tested
+is a selection effect. Disregarding it approximately doubles the type-I
+error rate, so that a nominal 5% test operates at about 10%.
 [`subnet()`](https://xavienzo.github.io/subnetr/reference/subnet.md)
-handles this by having every permutation run the same selection the
-observed data ran, which restores calibration:
+addresses this by having each permutation repeat the same selection
+procedure applied to the observed data:
 
-| null                           | type-I error at α = 0.05 |
+| Null distribution              | Type-I error at α = 0.05 |
 |--------------------------------|--------------------------|
 | uncorrected                    | 0.10                     |
 | `subnetr` default (`"retune"`) | 0.04                     |
 
-If you fix `threshold` and `lambda` in advance, no selection occurs and
-the ordinary null is used automatically.
+When `threshold` and `lambda` are supplied, no selection occurs and the
+ordinary null is used.
 
 ## Performance and reproducibility
 
-The screened graph is sparse by construction, and the compiled core
-exploits that: peeling runs over a compressed sparse representation with
-a lazily-updated min-heap, and permutations place only the surviving
-edges rather than rebuilding a dense matrix. Indicative single-core
-timings:
+The screened graph is sparse by construction, and the compiled core is
+written accordingly: peeling operates on a compressed sparse
+representation with a lazily updated minimum-degree heap, and
+permutations place only the surviving edges rather than reconstructing a
+dense matrix. Indicative single-core timings:
 
-| nodes | edges  | 200-permutation test |
+| Nodes | Edges  | 200-permutation test |
 |-------|--------|----------------------|
 | 100   | 4,950  | 0.01 s               |
 | 200   | 19,900 | 0.08 s               |
 | 400   | 79,800 | 0.41 s               |
 
-A 200-replicate power curve at 100 nodes takes a few seconds.
+A 200-replicate power curve at 100 nodes completes in a few seconds.
 
-Every permutation seeds its own random stream from its index, so results
-depend on `seed` alone — never on `n_cores` or on how work is split
-across workers. [`set.seed()`](https://rdrr.io/r/base/Random.html)
-before an unseeded call is enough to make a run reproducible.
-`n_cores > 1` uses OpenMP threads where the toolchain provides them
-(check with
+Each permutation seeds its own random stream from its index, so results
+depend only on `seed` and never on `n_cores` or on how the work is
+divided among workers. Calling
+[`set.seed()`](https://rdrr.io/r/base/Random.html) before an unseeded
+call is sufficient for reproducibility. Setting `n_cores > 1` uses
+OpenMP threads where the toolchain provides them (see
 [`has_openmp()`](https://xavienzo.github.io/subnetr/reference/has_openmp.md))
 and forked R workers otherwise.
 
-## Learn more
+## Documentation
 
 ``` r
 
-vignette("subnetr")          # the analysis pipeline, step by step
-vignette("power-analysis")   # designing a study
+vignette("subnetr")                # the analysis pipeline in detail
+vignette("power-analysis")         # study design
+vignette("multiple-subnetworks")   # results with several subnetworks
 ```
 
 ## References
