@@ -115,6 +115,45 @@ table(membership(fit))      # 0 = background
 #> 60 20
 ```
 
+### More than one subnetwork
+
+Nothing assumes a single subnetwork. Here two are planted, of different
+sizes and different effect sizes, and both come back separately.
+
+``` r
+
+sim2 <- simulate_fc(n = 150, n_nodes = 90, cluster_size = c(20, 12),
+                    f2 = c(0.08, 0.14), seed = 4)
+fit2 <- subnet(sim2$W, n_perm = 999, seed = 2)
+
+res <- as.data.frame(fit2)[, c("subnet", "size", "density", "p_value",
+                               "significant")]
+res$density <- round(res$density, 2)
+res
+#>   subnet size density p_value significant
+#> 1      1   20    0.85   0.001        TRUE
+#> 2      2   12    0.89   0.001        TRUE
+#> 3      3    8    0.43   0.676       FALSE
+#> 4      4   11    0.20   1.000       FALSE
+#> 5      5    8    0.25   1.000       FALSE
+#> 6      6    7    0.24   1.000       FALSE
+#> 7      7    9    0.17   1.000       FALSE
+```
+
+Blocks are disjoint by construction — peeling hands the nodes it removes
+to the next round, so each node lands in exactly one — and the p-values
+are jointly corrected across every block returned, significant or not,
+because each permutation reruns the whole extraction and contributes
+only its most extreme block. Two significant subnetworks out of seven
+extracted therefore cost no extra multiplicity budget.
+
+Two caveats. The null edge rate is computed over the whole graph, so it
+includes signal edges and makes the test conservative when one
+subnetwork is much stronger than another. And a partition cannot
+represent *overlapping* subnetworks: a node shared between two systems
+is assigned to whichever block claims it first. See
+[`vignette("multiple-subnetworks")`](https://xavienzo.github.io/subnetr/articles/multiple-subnetworks.md).
+
 ## Power analysis
 
 How many subjects do you need?
