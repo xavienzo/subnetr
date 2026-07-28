@@ -149,16 +149,15 @@ a calibrated permutation test.</p>
     <h2 id="choosing-an-objective">Choosing an objective<a class="anchor" aria-label="anchor" href="#choosing-an-objective"></a></h2>
 
 
-<p>A candidate set of <code>n</code> nodes carrying total supra-threshold weight <code>w</code> is
-scored by</p>
+<p>A candidate node set \(S\) of <code>n</code> nodes carrying total suprathreshold edge
+weight <code>w</code> is scored by</p>
 <dl><dt><code>"generalized"</code></dt>
-<dd><p>\(w / n^{2\lambda}\), the default. The exponent
-controls how hard size is penalized, and moving <code>lambda</code> sweeps a family
-of familiar criteria: <code>lambda = 0</code> maximizes total weight and returns
-the whole graph, <code>lambda = 0.5</code> maximizes average degree, and <code>lambda</code>
-approaching 1 maximizes edge density and collapses onto small cliques.
-Values between 0.5 and 0.7 balance the two failure modes and are the
-usual working range.</p></dd>
+<dd><p>\(w / n^{2\lambda}\), the default. This is the
+adaptive density function \(f(S; \lambda_W) = |W(S)| / |S|^{\lambda_W}\)
+of Wu et al. (2022), and equivalently the \(\ell_0\) graph norm
+shrinkage criterion \(\log\|U\|_1 - \lambda_0 \log\|U\|_0\) of Chen et
+al. (2023), which rewards edge weight within a subnetwork while
+penalizing its size.</p></dd>
 
 <dt><code>"density"</code></dt>
 <dd><p>\(w / \binom{n}{2}\), pure edge density, ignoring
@@ -166,8 +165,19 @@ usual working range.</p></dd>
 of nodes, so use it only with a substantial <code>min_size</code>.</p></dd>
 
 
-</dl><p>Larger <code>lambda</code> means smaller, denser subnetworks. If you have no prior
-reason to fix it, <code><a href="tune_subnet.html">tune_subnet()</a></code> selects it from the data.</p>
+</dl></div>
+    <div class="section level2">
+    <h2 id="parameterization-of-lambda">Parameterization of lambda<a class="anchor" aria-label="anchor" href="#parameterization-of-lambda"></a></h2>
+
+
+<p>The <code>lambda</code> used here equals \(\lambda_0\) of Chen et al. (2023) and half
+of \(\lambda_W\) of Wu et al. (2022), whose exponent runs over [1, 2].
+Concretely, <code>lambda = 0.5</code> (\(\lambda_W = 1\)) gives the degree density
+\(f_1\), the objective of Charikar (2000), and <code>lambda = 1</code>
+(\(\lambda_W = 2\)) gives the area density \(f_2\). Larger values favour
+smaller and denser subnetworks; <code>lambda = 0</code> places every node in one
+subnetwork. Values between 0.5 and 0.7 are the usual working range, and
+<code><a href="tune_subnet.html">tune_subnet()</a></code> selects a value from the data when none is supplied.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

@@ -1,19 +1,22 @@
 # subnetr
 
-`subnetr` identifies subnetworks of the brain connectome whose edges are
-associated with a predictor of interest, and provides simulation-based
-power analysis for study design. It implements the covariate-related
-subnetwork detection framework of Chen et al. (2023), building on the
-adaptive dense subgraph discovery method of Wu et al. (2022).
+`subnetr` extracts covariate-related subnetworks from whole-brain
+connectome data and provides simulation-based power analysis for study
+design. It implements the subnetwork detection framework of Chen et
+al. (2023), which builds on the adaptive dense subgraph discovery model
+of Wu et al. (2022).
 
-Mass-univariate analysis tests each of the tens of thousands of edges in
-a connectome separately and incurs a correspondingly severe
-multiple-comparison burden. Subnetwork detection instead asks whether
-there exists a set of nodes whose mutual connections are jointly
-associated with the predictor. Edge-wise test statistics are screened to
-form a sparse weighted graph, a generalized density objective is
-maximized by greedy peeling to extract candidate subnetworks, and a
-permutation test assigns each of them a p-value that controls the
+A covariate is typically related to a number of edges connecting
+multiple brain areas in an organized structure, but neither the
+covariate-related edges nor that structure is known in advance.
+Mass-univariate analysis applies a single threshold to every edge and
+returns a set of unrelated significant edges, recognizing no network
+topology; it also incurs a severe multiple-comparison burden. Subnetwork
+detection instead identifies node sets whose mutual connections are
+jointly associated with the covariate. Edge-wise test statistics are
+screened into a sparse weighted graph, an adaptive density objective is
+maximized by a greedy algorithm to extract candidate subnetworks, and a
+permutation test assigns each of them a p-value controlling the
 family-wise error rate.
 
 The extraction and permutation machinery is implemented in C++, which
@@ -235,45 +238,77 @@ not uniformly affected.
 
 ## Method
 
-**Screening.** Edge-wise test statistics, typically `-log10(p)` values,
-are thresholded at a value `r`. Edges below the threshold are set to
-zero, giving a sparse weighted adjacency matrix.
+**Edge-wise inference.** Each edge of the connectome is fitted by a
+general linear model of the connectivity measure on the covariate of
+interest, adjusting for nuisance covariates. The inferential results are
+stored in a matrix `W = {w_ij}` with `w_ij = -log10(p_ij)`, which forms
+the input to subnetwork extraction. Any valid statistical model
+producing such a matrix may be used.
 
-**Extraction.** Candidate subnetworks are obtained by greedy peeling.
-The node of minimum weighted degree is removed repeatedly, the objective
-is evaluated on the node set remaining after each removal, and the
-highest-scoring set is retained as a subnetwork. For a set of `n` nodes
-carrying total edge weight `w` the objective is
+**Screening.** `W` is thresholded at a value `r`, edges below it being
+set to zero. What remains is a sparse weighted graph of suprathreshold
+edges.
 
-    w / n^(2 * lambda)
+**Extraction.** Covariate-related subnetworks are extracted by the
+greedy algorithm conventional in dense subgraph discovery: the node of
+minimum degree is removed at each iteration, and the node-induced
+subgraph maximizing the objective over the resulting sequence is
+retained. Wu et al. (2022) define the adaptive density function
 
-The exponent governs the penalty on subnetwork size. At `lambda = 0.5`
-the criterion reduces to average degree, the classical densest-subgraph
-objective; as `lambda` approaches 1 it approaches edge density and
-favours small, tightly connected sets; at `lambda = 0` it reduces to
-total edge weight and returns the entire graph. Values between 0.5 and
-0.7 are the usual working range. The removed nodes are passed to the
-next round, so successive subnetworks are extracted in decreasing order
-of density.
+    f(S; lambda_W) = |W(S)| / |S| ^ lambda_W,     lambda_W in [1, 2]
 
-**Inference.** Each block is assigned the upper-tail binomial
-probability of containing at least as many supra-threshold edges as
-observed, given the overall supra-threshold edge probability of the
-graph. Because block size enters as the binomial sample size, blocks of
-differing size are placed on a common scale. The null distribution is
-obtained by permuting edge weights across the graph and repeating the
-entire extraction, retaining the most extreme block statistic from each
-permutation. This is a max-statistic (Westfall–Young) procedure and
-controls the family-wise error rate over all extracted subnetworks
-without further correction.
+for a node set `S` carrying total suprathreshold edge weight `|W(S)|`,
+which interpolates between the two classical criteria: `lambda_W = 1`
+gives the degree density `f1`, the objective of Charikar (2000), and
+`lambda_W = 2` gives the area density `f2`. Equivalently, Chen et
+al. (2023) write the criterion as an ℓ0 graph norm shrinkage penalty,
+`log||U||_1 - lambda_0 log||U||_0`, which rewards edge weight within a
+subnetwork while penalizing its size.
+
+`subnetr` parameterizes this family as
+
+    w / n ^ (2 * lambda)
+
+for a set of `n` nodes carrying weight `w`. This is Chen et al.’s
+`lambda_0` and half of Wu et al.’s `lambda_W`, so `lambda = 0.5` is
+degree density and `lambda = 1` is area density. Larger values favour
+smaller, denser subnetworks; `lambda = 0` places all nodes in a single
+subnetwork. Values between 0.5 and 0.7 are the usual working range.
+Nodes removed in one round are passed to the next, so subnetworks are
+extracted in decreasing order of density, and nodes belonging to none of
+them are returned as background singletons.
+
+**Inference.** Testing several extracted subnetworks simultaneously
+requires comparing subnetworks of different densities and sizes on a
+common scale. Chen et al. (2023) address this with a concentration bound
+on the probability of observing a subnetwork of size `v0` and density
+`γ` in a graph of overall density `p`. `subnetr` instead uses the exact
+upper-tail binomial probability of a subnetwork containing at least as
+many suprathreshold edges as observed, given the overall suprathreshold
+edge probability, which serves the same purpose without the bound’s
+slack: subnetwork size enters as the binomial sample size, so
+subnetworks of differing size are directly comparable.
+
+The null distribution is obtained by permuting edge weights across the
+graph and repeating the entire extraction, retaining the most extreme
+subnetwork statistic from each permutation. This is a max-statistic
+(Westfall–Young) procedure and controls the family-wise error rate over
+all extracted subnetworks without further correction.
 
 ### Parameter selection
 
-`threshold` and `lambda` default to `NULL`, in which case
+Neither the screening threshold nor the size penalty should be fixed
+arbitrarily. Wu et al. (2022) estimate `lambda` by maximizing a
+likelihood under a stochastic block model, and treat the threshold `r`
+as a random variable with prior `g(r)`, integrating the likelihood with
+respect to it rather than selecting a single value.
+
+`subnetr` follows the same principle over a grid. `threshold` and
+`lambda` default to `NULL`, in which case
 [`tune_subnet()`](https://xavienzo.github.io/subnetr/reference/tune_subnet.md)
-selects them by standardizing each candidate against its own permutation
-null, so that settings yielding graphs of differing sparsity remain
-comparable.
+scores each candidate pair by the block-model log-likelihood ratio and
+standardizes it against that pair’s own permutation null, so that
+settings yielding graphs of differing sparsity remain comparable.
 
 Selecting the threshold from the same matrix that is subsequently tested
 is a selection effect. Disregarding it approximately doubles the type-I

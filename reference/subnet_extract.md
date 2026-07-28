@@ -104,18 +104,17 @@ the full analysis with a calibrated permutation test.
 
 ## Choosing an objective
 
-A candidate set of `n` nodes carrying total supra-threshold weight `w`
-is scored by
+A candidate node set \\S\\ of `n` nodes carrying total suprathreshold
+edge weight `w` is scored by
 
 - `"generalized"`:
 
-  \\w / n^{2\lambda}\\, the default. The exponent controls how hard size
-  is penalized, and moving `lambda` sweeps a family of familiar
-  criteria: `lambda = 0` maximizes total weight and returns the whole
-  graph, `lambda = 0.5` maximizes average degree, and `lambda`
-  approaching 1 maximizes edge density and collapses onto small cliques.
-  Values between 0.5 and 0.7 balance the two failure modes and are the
-  usual working range.
+  \\w / n^{2\lambda}\\, the default. This is the adaptive density
+  function \\f(S; \lambda_W) = \|W(S)\| / \|S\|^{\lambda_W}\\ of Wu et
+  al. (2022), and equivalently the \\\ell_0\\ graph norm shrinkage
+  criterion \\\log\\U\\\_1 - \lambda_0 \log\\U\\\_0\\ of Chen et al.
+  (2023), which rewards edge weight within a subnetwork while penalizing
+  its size.
 
 - `"density"`:
 
@@ -123,10 +122,17 @@ is scored by
   size floor this degenerates to the single densest pair of nodes, so
   use it only with a substantial `min_size`.
 
-Larger `lambda` means smaller, denser subnetworks. If you have no prior
-reason to fix it,
+## Parameterization of lambda
+
+The `lambda` used here equals \\\lambda_0\\ of Chen et al. (2023) and
+half of \\\lambda_W\\ of Wu et al. (2022), whose exponent runs over \[1,
+2\]. Concretely, `lambda = 0.5` (\\\lambda_W = 1\\) gives the degree
+density \\f_1\\, the objective of Charikar (2000), and `lambda = 1`
+(\\\lambda_W = 2\\) gives the area density \\f_2\\. Larger values favour
+smaller and denser subnetworks; `lambda = 0` places every node in one
+subnetwork. Values between 0.5 and 0.7 are the usual working range, and
 [`tune_subnet()`](https://xavienzo.github.io/subnetr/reference/tune_subnet.md)
-selects it from the data.
+selects a value from the data when none is supplied.
 
 ## References
 
