@@ -375,7 +375,7 @@ a <- subnet(sim$W, threshold = thr, lambda = 0.6, n_perm = 199, seed = 7)
 b <- subnet(sim$W, threshold = thr, lambda = 0.6, n_perm = 199, seed = 7,
             n_cores = 2)
 identical(a$p_value, b$p_value)
-#> [1] FALSE
+#> [1] TRUE
 ```
 
 ## Where to next
