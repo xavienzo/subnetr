@@ -1,0 +1,198 @@
+---
+title: "Multiple subnetworks"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Multiple subnetworks}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 9,
+                      fig.height = 4.2, dpi = 120)
+set.seed(1)
+```
+
+```{r}
+library(subnetr)
+```
+
+## More than one subnetwork
+
+Nothing in the method assumes a single subnetwork. A predictor may be
+associated with several distinct systems at once, and `subnet()` returns each
+of them separately, with its own p-value. This article covers what that looks
+like, how multiplicity is handled across them, and where the approach runs out.
+
+We plant two subnetworks of different sizes carrying different effects in a
+90-node connectome. `simulate_fc()` recycles `f2` across `cluster_size`, so
+each subnetwork gets its own effect size.
+
+```{r simulate}
+sim <- simulate_fc(n = 150, n_nodes = 90, cluster_size = c(20, 12),
+                   f2 = c(0.08, 0.14), seed = 4)
+
+lengths(sim$truth$nodes)
+```
+
+Node labels are shuffled, so neither block sits conveniently in the corner of
+the matrix.
+
+## Detection
+
+```{r fit}
+fit <- subnet(sim$W, n_perm = 999, seed = 2)
+fit
+```
+
+Both planted subnetworks come back as separate blocks, and both are
+significant. The remaining blocks are what greedy peeling always produces from
+leftover noise — the densest block of a random graph is still a block — and
+the test correctly declines to call them.
+
+Checking against the truth:
+
+```{r match}
+for (k in seq_along(sim$truth$nodes)) {
+  d <- vapply(fit$subnetworks, dice, numeric(1), b = sim$truth$nodes[[k]])
+  best <- which.max(d)
+  cat(sprintf("planted %d (size %2d): block #%d, Dice = %.2f, p = %.4f\n",
+              k, length(sim$truth$nodes[[k]]), best, d[best],
+              fit$p_value[best]))
+}
+```
+
+The two panels below show why reordering matters. On the left the structure is
+spread across arbitrary node indices and invisible; on the right both blocks
+sit on the diagonal, outlined.
+
+```{r plot}
+plot(fit, what = "both")
+```
+
+## Blocks are disjoint by construction
+
+Extraction partitions the node set. Each round pulls out the densest core and
+hands the *peeled-off* nodes to the next round, so a node can only ever land in
+one block.
+
+```{r disjoint}
+sn <- fit$subnetworks
+sum(vapply(seq_along(sn), function(i) {
+  if (i == length(sn)) return(0L)
+  sum(vapply(sn[(i + 1):length(sn)], function(o) length(intersect(sn[[i]], o)),
+             integer(1)))
+}, integer(1)))
+
+anyDuplicated(unlist(fit$partition$blocks))
+```
+
+Because every node has exactly one home, membership is a single label per node:
+
+```{r membership}
+table(membership(fit))
+```
+
+`0` is the background. `membership(fit, significant_only = FALSE)` labels every
+extracted block instead of only the significant ones.
+
+## Multiplicity is already handled
+
+There is no extra correction to apply when several subnetworks are reported.
+Each permutation reruns the **entire** extraction and records the single most
+extreme block it produced anywhere in the graph; every observed block is then
+compared against that distribution of maxima. This is the Westfall-Young
+max-statistic construction, so the p-values control the family-wise error rate
+jointly across all blocks returned — including the ones that fell short.
+
+```{r fwer}
+as.data.frame(fit)[, c("subnet", "size", "density", "p_value", "significant")]
+```
+
+Reporting two significant subnetworks out of seven extracted costs no
+additional multiplicity budget. Do not pass these p-values through
+`p.adjust()`.
+
+## The null is conservative when signal is strong
+
+Each block is tested against `pi0`, the supra-threshold edge rate across the
+whole graph. That rate is computed from the observed data, so it *includes* the
+signal edges, which makes it larger than the rate among genuinely null edges.
+
+```{r conservative}
+wv <- vech(fit$W)
+K  <- sum(wv >= fit$threshold)   # supra-threshold edges, whole graph
+M  <- length(wv)                 # all edges
+
+sz <- fit$size[fit$significant]
+inside_K <- sum(fit$n_edge[fit$significant])
+inside_M <- sum(sz * (sz - 1) / 2)
+
+c(pi0_used      = K / M,
+  background    = (K - inside_K) / (M - inside_M),
+  overstated_by = (K / M) / ((K - inside_K) / (M - inside_M)))
+```
+
+The test judges each block against a null roughly twice as dense as the real
+background. That errs in the safe direction, but it does mean a weak second
+subnetwork is harder to detect alongside a very strong first one than it would
+be on its own. If you suspect a subtler subnetwork behind a dominant one,
+rerunning on the remaining nodes gives it a cleaner null:
+
+```{r residual, eval = FALSE}
+rest <- setdiff(seq_len(nrow(sim$W)), fit$subnetworks[[1]])
+subnet(sim$W[rest, rest], n_perm = 999)
+```
+
+Treat that as exploratory. The second pass conditions on the first result, so
+its p-values are not jointly corrected with it.
+
+## Power depends on subnetwork size
+
+`power_curve()` accepts a vector `cluster_size` and reports each planted
+subnetwork separately. Here both carry the *same* effect size, so any
+difference in power is attributable to size alone.
+
+```{r power}
+pw <- power_curve(n = c(60, 100, 150), n_nodes = 90,
+                  cluster_size = c(20, 12), f2 = c(0.03, 0.03),
+                  n_sim = 50, n_perm = 199, seed = 5, progress = FALSE)
+
+pw$by_cluster
+```
+
+The 20-node subnetwork is found long before the 12-node one. It spans 190
+edges against 66, so it accumulates far more evidence at the same per-edge
+effect size. Subnetwork size, not just effect size, drives what a study can
+find.
+
+The joint summary requires *every* planted subnetwork to be recovered, so it
+tracks the harder of the two:
+
+```{r joint}
+pw$power[, c("n", "power", "power_recovery", "false_subnet_rate")]
+```
+
+`power` is the chance of declaring anything significant, `power_recovery` the
+chance of recovering all planted subnetworks at `dice_cut` overlap, and
+`false_subnet_rate` the share of significant blocks matching nothing planted.
+When sizing a study aimed at several subnetworks, size it for the smallest one
+you care about.
+
+## Where this runs out
+
+The partition is a genuine constraint, not a tuning choice: **overlapping
+subnetworks cannot be represented.** If a hub region truly participates in two
+distinct predictor-associated systems, peeling will assign it to whichever
+block claims it first, and the other will be reported without it.
+
+If overlap is central to your hypothesis, the block structure here is the wrong
+model and you would be better served by a method that permits mixed membership.
+If overlap is incidental — a node or two shared between otherwise distinct
+systems — the cost is a slightly understated subnetwork rather than a wrong
+answer.
+
+## See also
+
+`vignette("subnetr")` for the pipeline end to end, and
+`vignette("power-analysis")` for study design with a single subnetwork.

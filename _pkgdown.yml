@@ -1,0 +1,48 @@
+url: https://xavienzo.github.io/subnetr
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+
+reference:
+  - title: Analysis
+    desc: >
+      Going from subject-level connectivity to significant subnetworks.
+    contents:
+      - subnet
+      - edge_stats
+      - subnet_extract
+      - tune_subnet
+
+  - title: Power analysis
+    desc: >
+      Sizing a study before you run it.
+    contents:
+      - power_curve
+      - required_n
+      - simulate_fc
+
+  - title: Inspecting results
+    contents:
+      - plot.subnet
+      - plot.subnet_power
+      - as.data.frame.subnet
+      - membership
+
+  - title: Utilities
+    contents:
+      - vech
+      - dice
+      - has_openmp
+
+articles:
+  - title: Articles
+    navbar: ~
+    contents:
+      - subnetr
+      - power-analysis
+      - multiple-subnetworks
