@@ -18,6 +18,7 @@ subnet(
   min_size = 3L,
   max_clusters = 25L,
   tune = list(),
+  tuning = NULL,
   null = c("auto", "retune", "grid", "selected"),
   n_cores = 1L,
   seed = NULL,
@@ -62,6 +63,16 @@ subnet(
   A named list of extra arguments for
   [`tune_subnet()`](https://xavienzo.github.io/subnetr/reference/tune_subnet.md),
   used only when `threshold` or `lambda` is `NULL`.
+
+- tuning:
+
+  A `subnet_tuning` object from a previous
+  [`tune_subnet()`](https://xavienzo.github.io/subnetr/reference/tune_subnet.md)
+  call, to reuse rather than repeat the search. Cannot be combined with
+  `threshold` or `lambda`. Prefer this to passing a tuning result's
+  selected values as numbers: those carry no record of having been
+  selected, so the null would be built as though the parameters had been
+  fixed in advance.
 
 - null:
 
@@ -189,6 +200,17 @@ instead, which is valid whatever the selection rule but noticeably
 conservative (about 1.5% actual error for a nominal 5% test);
 `null = "selected"` applies no correction at all and is appropriate only
 when `threshold` and `lambda` were fixed in advance rather than tuned.
+
+Because the correction needs the grid that was searched, a tuning result
+must be handed over whole. Running
+[`tune_subnet()`](https://xavienzo.github.io/subnetr/reference/tune_subnet.md)
+and then passing its selected values as plain numbers loses that record
+and silently reverts to `null = "selected"`; pass `tuning =` instead.
+
+
+    tn <- tune_subnet(W)
+    subnet(W, threshold = tn$threshold, lambda = tn$lambda)  # uncorrected
+    subnet(W, tuning = tn)                                   # correct
 
 ## See also
 

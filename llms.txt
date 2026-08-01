@@ -295,35 +295,138 @@ subnetwork statistic from each permutation. This is a max-statistic
 (Westfall–Young) procedure and controls the family-wise error rate over
 all extracted subnetworks without further correction.
 
-### Parameter selection
+## Parameter tuning
 
 Neither the screening threshold nor the size penalty should be fixed
 arbitrarily. Wu et al. (2022) estimate `lambda` by maximizing a
 likelihood under a stochastic block model, and treat the threshold `r`
 as a random variable with prior `g(r)`, integrating the likelihood with
-respect to it rather than selecting a single value.
+respect to it rather than selecting a single value. `subnetr` follows
+the same principle over a grid, and the default is to do it for you.
 
-`subnetr` follows the same principle over a grid. `threshold` and
-`lambda` default to `NULL`, in which case
+### The default: supply nothing
+
+`threshold` and `lambda` default to `NULL`, so
+
+``` r
+
+fit <- subnet(W, n_perm = 999)
+```
+
+runs
 [`tune_subnet()`](https://xavienzo.github.io/subnetr/reference/tune_subnet.md)
-scores each candidate pair by the block-model log-likelihood ratio and
-standardizes it against that pair’s own permutation null, so that
-settings yielding graphs of differing sparsity remain comparable.
+over a grid of five `lambda` values by five thresholds, fits at the
+selected pair, and — the part that matters — records that the parameters
+were selected from the data, so the permutation null is built
+accordingly.
+
+Each candidate pair is scored by the log-likelihood ratio of a block
+model against a homogeneous model, then standardized against that pair’s
+own permutation null. Standardization is what makes the grid comparable:
+a looser threshold mechanically produces a denser graph, more blocks and
+a larger raw likelihood, so the unstandardized statistic would simply
+select the loosest setting on offer.
+
+### Inspecting the choice
+
+``` r
+
+fit$tuning
+#> Threshold / lambda tuning
+#>   criterion : calibrated (25 permutations per grid point)
+#>   grid      : 5 lambda x 5 threshold
+#>   selected  : lambda = 0.50, threshold = 1.41
+#> 
+#> Top grid points:
+#>  lambda prob threshold n_clusters    lr     z
+#>     0.5 0.90     1.410          3 286.2 40.47
+#>     0.7 0.90     1.410         13 327.6 24.37
+#>     0.8 0.90     1.410         14 299.2 22.70
+#>     0.7 0.95     2.293          9 273.9 22.17
+#>     0.5 0.95     2.293          4 266.9 17.86
+```
+
+Selection is on `z`, not `lr`. In the table above the second row has the
+higher raw likelihood ratio but a lower `z`, precisely the mechanical
+effect that standardization removes. The full grid is available as
+`fit$tuning$grid`, a data frame with one row per candidate pair.
+
+### Adjusting the grid
+
+``` r
+
+fit <- subnet(W, tune = list(probs       = c(0.95, 0.98, 0.99),
+                             lambda_grid = c(0.5, 0.6, 0.7),
+                             n_perm      = 40))
+```
+
+`probs` are quantiles of the observed edge weights, defaulting to
+`0.90, 0.95, 0.975, 0.99, 0.995`. The binding constraint is that
+screening must retain at least as many edges as the target subnetwork
+spans: a 20-node subnetwork in an 80-node connectome spans 190 of 3160
+edges, about 6%, so a 99.5th-percentile threshold cannot recover it at
+any sample size. As a rule of thumb the most stringent quantile in the
+grid should still retain a small multiple of `c(c-1)/2` edges for the
+smallest subnetwork `c` of interest.
+
+`lambda_grid` defaults to `seq(0.5, 0.9, 0.1)`, the range used in the
+source papers. The `n_perm` here is the number of calibration
+permutations per grid point and is unrelated to the `n_perm` of the test
+itself; 25 is enough to rank candidates.
+
+Setting `criterion = "likelihood"` skips the calibration permutations
+altogether. It is faster, but biased toward the extremes of the
+threshold grid, which is the reason calibration exists.
+
+### Why tuning changes the null
 
 Selecting the threshold from the same matrix that is subsequently tested
-is a selection effect. Disregarding it approximately doubles the type-I
+is a selection effect. Ignoring it approximately doubles the type-I
 error rate, so that a nominal 5% test operates at about 10%.
 [`subnet()`](https://xavienzo.github.io/subnetr/reference/subnet.md)
-addresses this by having each permutation repeat the same selection
-procedure applied to the observed data:
+addresses this by having each permutation repeat the same selection the
+observed data underwent:
 
 | Null distribution              | Type-I error at α = 0.05 |
 |--------------------------------|--------------------------|
 | uncorrected                    | 0.10                     |
 | `subnetr` default (`"retune"`) | 0.04                     |
 
-When `threshold` and `lambda` are supplied, no selection occurs and the
-ordinary null is used.
+This costs one extraction pass per grid point per permutation, which is
+affordable because extraction is compiled.
+
+### Reusing or fixing parameters
+
+To inspect the tuning before fitting, or to reuse one search across
+several analyses, pass the result object itself:
+
+``` r
+
+tn  <- tune_subnet(W)
+fit <- subnet(W, tuning = tn, n_perm = 999)
+```
+
+Pass the object, not its contents. The correction needs the grid that
+was searched, and
+
+``` r
+
+subnet(W, threshold = tn$threshold, lambda = tn$lambda)   # uncorrected
+```
+
+supplies the same two numbers with no record of where they came from, so
+the null is built as though they had been chosen in advance.
+[`subnet()`](https://xavienzo.github.io/subnetr/reference/subnet.md)
+cannot detect this, which is why `tuning =` exists.
+
+When the parameters genuinely were fixed in advance — from prior work,
+say — supplying them as numbers is correct, and the ordinary null is
+used automatically:
+
+``` r
+
+fit <- subnet(W, threshold = 2.5, lambda = 0.6, n_perm = 999)
+```
 
 ## Performance and reproducibility
 

@@ -210,12 +210,54 @@ plot of chunk power
 <p>for a set of <code>n</code> nodes carrying weight <code>w</code>. This is Chen et al.’s <code>lambda_0</code> and half of Wu et al.’s <code>lambda_W</code>, so <code>lambda = 0.5</code> is degree density and <code>lambda = 1</code> is area density. Larger values favour smaller, denser subnetworks; <code>lambda = 0</code> places all nodes in a single subnetwork. Values between 0.5 and 0.7 are the usual working range. Nodes removed in one round are passed to the next, so subnetworks are extracted in decreasing order of density, and nodes belonging to none of them are returned as background singletons.</p>
 <p><strong>Inference.</strong> Testing several extracted subnetworks simultaneously requires comparing subnetworks of different densities and sizes on a common scale. Chen et al. (2023) address this with a concentration bound on the probability of observing a subnetwork of size <code>v0</code> and density <code>γ</code> in a graph of overall density <code>p</code>. <code>subnetr</code> instead uses the exact upper-tail binomial probability of a subnetwork containing at least as many suprathreshold edges as observed, given the overall suprathreshold edge probability, which serves the same purpose without the bound’s slack: subnetwork size enters as the binomial sample size, so subnetworks of differing size are directly comparable.</p>
 <p>The null distribution is obtained by permuting edge weights across the graph and repeating the entire extraction, retaining the most extreme subnetwork statistic from each permutation. This is a max-statistic (Westfall–Young) procedure and controls the family-wise error rate over all extracted subnetworks without further correction.</p>
+</div>
+<div class="section level2">
+<h2 id="parameter-tuning">Parameter tuning<a class="anchor" aria-label="anchor" href="#parameter-tuning"></a>
+</h2>
+<p>Neither the screening threshold nor the size penalty should be fixed arbitrarily. Wu et al. (2022) estimate <code>lambda</code> by maximizing a likelihood under a stochastic block model, and treat the threshold <code>r</code> as a random variable with prior <code>g(r)</code>, integrating the likelihood with respect to it rather than selecting a single value. <code>subnetr</code> follows the same principle over a grid, and the default is to do it for you.</p>
 <div class="section level3">
-<h3 id="parameter-selection">Parameter selection<a class="anchor" aria-label="anchor" href="#parameter-selection"></a>
+<h3 id="the-default-supply-nothing">The default: supply nothing<a class="anchor" aria-label="anchor" href="#the-default-supply-nothing"></a>
 </h3>
-<p>Neither the screening threshold nor the size penalty should be fixed arbitrarily. Wu et al. (2022) estimate <code>lambda</code> by maximizing a likelihood under a stochastic block model, and treat the threshold <code>r</code> as a random variable with prior <code>g(r)</code>, integrating the likelihood with respect to it rather than selecting a single value.</p>
-<p><code>subnetr</code> follows the same principle over a grid. <code>threshold</code> and <code>lambda</code> default to <code>NULL</code>, in which case <code><a href="reference/tune_subnet.html">tune_subnet()</a></code> scores each candidate pair by the block-model log-likelihood ratio and standardizes it against that pair’s own permutation null, so that settings yielding graphs of differing sparsity remain comparable.</p>
-<p>Selecting the threshold from the same matrix that is subsequently tested is a selection effect. Disregarding it approximately doubles the type-I error rate, so that a nominal 5% test operates at about 10%. <code><a href="reference/subnet.html">subnet()</a></code> addresses this by having each permutation repeat the same selection procedure applied to the observed data:</p>
+<p><code>threshold</code> and <code>lambda</code> default to <code>NULL</code>, so</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">W</span>, n_perm <span class="op">=</span> <span class="fl">999</span><span class="op">)</span></span></code></pre></div>
+<p>runs <code><a href="reference/tune_subnet.html">tune_subnet()</a></code> over a grid of five <code>lambda</code> values by five thresholds, fits at the selected pair, and — the part that matters — records that the parameters were selected from the data, so the permutation null is built accordingly.</p>
+<p>Each candidate pair is scored by the log-likelihood ratio of a block model against a homogeneous model, then standardized against that pair’s own permutation null. Standardization is what makes the grid comparable: a looser threshold mechanically produces a denser graph, more blocks and a larger raw likelihood, so the unstandardized statistic would simply select the loosest setting on offer.</p>
+</div>
+<div class="section level3">
+<h3 id="inspecting-the-choice">Inspecting the choice<a class="anchor" aria-label="anchor" href="#inspecting-the-choice"></a>
+</h3>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">tuning</span></span>
+<span><span class="co">#&gt; Threshold / lambda tuning</span></span>
+<span><span class="co">#&gt;   criterion : calibrated (25 permutations per grid point)</span></span>
+<span><span class="co">#&gt;   grid      : 5 lambda x 5 threshold</span></span>
+<span><span class="co">#&gt;   selected  : lambda = 0.50, threshold = 1.41</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Top grid points:</span></span>
+<span><span class="co">#&gt;  lambda prob threshold n_clusters    lr     z</span></span>
+<span><span class="co">#&gt;     0.5 0.90     1.410          3 286.2 40.47</span></span>
+<span><span class="co">#&gt;     0.7 0.90     1.410         13 327.6 24.37</span></span>
+<span><span class="co">#&gt;     0.8 0.90     1.410         14 299.2 22.70</span></span>
+<span><span class="co">#&gt;     0.7 0.95     2.293          9 273.9 22.17</span></span>
+<span><span class="co">#&gt;     0.5 0.95     2.293          4 266.9 17.86</span></span></code></pre></div>
+<p>Selection is on <code>z</code>, not <code>lr</code>. In the table above the second row has the higher raw likelihood ratio but a lower <code>z</code>, precisely the mechanical effect that standardization removes. The full grid is available as <code>fit$tuning$grid</code>, a data frame with one row per candidate pair.</p>
+</div>
+<div class="section level3">
+<h3 id="adjusting-the-grid">Adjusting the grid<a class="anchor" aria-label="anchor" href="#adjusting-the-grid"></a>
+</h3>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">W</span>, tune <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>probs       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.95</span>, <span class="fl">0.98</span>, <span class="fl">0.99</span><span class="op">)</span>,</span>
+<span>                             lambda_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">0.6</span>, <span class="fl">0.7</span><span class="op">)</span>,</span>
+<span>                             n_perm      <span class="op">=</span> <span class="fl">40</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><code>probs</code> are quantiles of the observed edge weights, defaulting to <code>0.90, 0.95, 0.975, 0.99, 0.995</code>. The binding constraint is that screening must retain at least as many edges as the target subnetwork spans: a 20-node subnetwork in an 80-node connectome spans 190 of 3160 edges, about 6%, so a 99.5th-percentile threshold cannot recover it at any sample size. As a rule of thumb the most stringent quantile in the grid should still retain a small multiple of <code>c(c-1)/2</code> edges for the smallest subnetwork <code>c</code> of interest.</p>
+<p><code>lambda_grid</code> defaults to <code>seq(0.5, 0.9, 0.1)</code>, the range used in the source papers. The <code>n_perm</code> here is the number of calibration permutations per grid point and is unrelated to the <code>n_perm</code> of the test itself; 25 is enough to rank candidates.</p>
+<p>Setting <code>criterion = "likelihood"</code> skips the calibration permutations altogether. It is faster, but biased toward the extremes of the threshold grid, which is the reason calibration exists.</p>
+</div>
+<div class="section level3">
+<h3 id="why-tuning-changes-the-null">Why tuning changes the null<a class="anchor" aria-label="anchor" href="#why-tuning-changes-the-null"></a>
+</h3>
+<p>Selecting the threshold from the same matrix that is subsequently tested is a selection effect. Ignoring it approximately doubles the type-I error rate, so that a nominal 5% test operates at about 10%. <code><a href="reference/subnet.html">subnet()</a></code> addresses this by having each permutation repeat the same selection the observed data underwent:</p>
 <table class="table">
 <thead><tr>
 <th>Null distribution</th>
@@ -233,7 +275,22 @@ plot of chunk power
 </tr>
 </tbody>
 </table>
-<p>When <code>threshold</code> and <code>lambda</code> are supplied, no selection occurs and the ordinary null is used.</p>
+<p>This costs one extraction pass per grid point per permutation, which is affordable because extraction is compiled.</p>
+</div>
+<div class="section level3">
+<h3 id="reusing-or-fixing-parameters">Reusing or fixing parameters<a class="anchor" aria-label="anchor" href="#reusing-or-fixing-parameters"></a>
+</h3>
+<p>To inspect the tuning before fitting, or to reuse one search across several analyses, pass the result object itself:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tn</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/tune_subnet.html">tune_subnet</a></span><span class="op">(</span><span class="va">W</span><span class="op">)</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">W</span>, tuning <span class="op">=</span> <span class="va">tn</span>, n_perm <span class="op">=</span> <span class="fl">999</span><span class="op">)</span></span></code></pre></div>
+<p>Pass the object, not its contents. The correction needs the grid that was searched, and</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">W</span>, threshold <span class="op">=</span> <span class="va">tn</span><span class="op">$</span><span class="va">threshold</span>, lambda <span class="op">=</span> <span class="va">tn</span><span class="op">$</span><span class="va">lambda</span><span class="op">)</span>   <span class="co"># uncorrected</span></span></code></pre></div>
+<p>supplies the same two numbers with no record of where they came from, so the null is built as though they had been chosen in advance. <code><a href="reference/subnet.html">subnet()</a></code> cannot detect this, which is why <code>tuning =</code> exists.</p>
+<p>When the parameters genuinely were fixed in advance — from prior work, say — supplying them as numbers is correct, and the ordinary null is used automatically:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/subnet.html">subnet</a></span><span class="op">(</span><span class="va">W</span>, threshold <span class="op">=</span> <span class="fl">2.5</span>, lambda <span class="op">=</span> <span class="fl">0.6</span>, n_perm <span class="op">=</span> <span class="fl">999</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -270,7 +327,7 @@ plot of chunk power
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"subnetr"</span><span class="op">)</span>                <span class="co"># the analysis pipeline in detail</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"power-analysis"</span><span class="op">)</span>         <span class="co"># study design</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"multiple-subnetworks"</span><span class="op">)</span>   <span class="co"># results with several subnetworks</span></span></code></pre></div>
