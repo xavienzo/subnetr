@@ -2,6 +2,7 @@
 
 S3method(as.data.frame,subnet)
 S3method(plot,subnet)
+S3method(plot,subnet_partition)
 S3method(plot,subnet_power)
 S3method(print,subnet)
 S3method(print,subnet_partition)

@@ -131,7 +131,10 @@ new_partition <- function(res, W, threshold, lambda, objective, min_size) {
          objective = objective,
          min_size = min_size,
          pi0 = pi0,
-         n_nodes = nrow(W)),
+         n_nodes = nrow(W),
+         # Retained so the partition can plot itself. `subnet()` stores the
+         # same object, and R's copy-on-write means holding both costs nothing.
+         W = W),
     class = "subnet_partition")
 }
 

@@ -296,6 +296,52 @@ plot.subnet <- function(x, what = c("reordered", "observed", "both"),
   invisible(x)
 }
 
+#' Plot the blocks of a partition
+#'
+#' Draws the weighted matrix a [subnet_extract()] partition was built from,
+#' with nodes reordered so the extracted blocks lie along the diagonal.
+#'
+#' Unlike [plot.subnet()], no block is singled out as significant, because a
+#' partition on its own carries no inference: every block is outlined. This is
+#' the plot to use when extraction is applied to a connectivity matrix
+#' directly, such as a group-average connectome, rather than to a matrix of
+#' association statistics.
+#'
+#' @param x A `subnet_partition` object.
+#' @param what `"reordered"` (default), `"observed"`, or `"both"`.
+#' @param blocks Which blocks to outline. Defaults to every extracted
+#'   subnetwork, excluding the background block.
+#' @param col Colour palette.
+#' @param main Panel title, or a vector of two when `what = "both"`.
+#' @param weight_label Label for the colour scale, as a string or an
+#'   [expression]. Defaults to the `"statistic"` attribute of the matrix, and
+#'   to `"edge weight"` when it carries none.
+#' @param legend Draw the colour scale.
+#' @param ... Passed to [graphics::image()].
+#'
+#' @return `x`, invisibly. Called for the plot.
+#'
+#' @examples
+#' sim <- simulate_fc(n = 100, n_nodes = 60, cluster_size = 12, f2 = 0.2,
+#'                    seed = 1)
+#' part <- subnet_extract(sim$W, threshold = quantile(vech(sim$W), 0.95))
+#' plot(part)
+#'
+#' @export
+plot.subnet_partition <- function(x, what = c("reordered", "observed", "both"),
+                                  blocks = seq_len(x$n_clusters),
+                                  col = grDevices::hcl.colors(64, "Inferno"),
+                                  main = NULL, weight_label = NULL,
+                                  legend = TRUE, ...) {
+  fake <- list(W = x$W, partition = x,
+               size = x$sizes[seq_len(x$n_clusters)],
+               significant = seq_len(x$n_clusters) %in% blocks)
+  class(fake) <- "subnet"
+  plot(fake, what = what, significant_only = TRUE, col = col, main = main,
+       weight_label = weight_label, legend = legend, ...)
+  invisible(x)
+}
+
 #' Plot a power curve
 #'
 #' @param x A `subnet_power` object.

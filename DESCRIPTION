@@ -29,6 +29,7 @@ Imports:
 LinkingTo:
     Rcpp
 Suggests:
+    igraph,
     knitr,
     rmarkdown,
     parallel,
