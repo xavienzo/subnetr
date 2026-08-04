@@ -12,6 +12,8 @@
   main = NULL,
   weight_label = NULL,
   legend = TRUE,
+  W = x$W,
+  zlim = NULL,
   ...
 )
 }
@@ -32,6 +34,12 @@ order, or \code{"both"} for the two side by side.}
 \code{"edge weight"} when the matrix carries none.}
 
 \item{legend}{Draw the colour scale.}
+
+\item{W}{Matrix to display. Defaults to the one the fit was built from;
+supply another of the same dimensions to view it in this node ordering.}
+
+\item{zlim}{Range of the colour scale. Defaults to the range of \code{W}; fix it
+to compare separate figures on a common scale.}
 
 \item{...}{Passed to \code{\link[graphics:image]{graphics::image()}}.}
 }

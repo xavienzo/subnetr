@@ -12,6 +12,8 @@
   main = NULL,
   weight_label = NULL,
   legend = TRUE,
+  W = x$W,
+  zlim = NULL,
   ...
 )
 }
@@ -32,6 +34,13 @@ subnetwork, excluding the background block.}
 to \code{"edge weight"} when it carries none.}
 
 \item{legend}{Draw the colour scale.}
+
+\item{W}{Matrix to display. Defaults to the one the partition was built
+from; supply another of the same dimensions to view it in this ordering,
+which is how two groups are compared under a common partition.}
+
+\item{zlim}{Range of the colour scale. Defaults to the range of \code{W}; fix it
+to compare separate figures on a common scale.}
 
 \item{...}{Passed to \code{\link[graphics:image]{graphics::image()}}.}
 }

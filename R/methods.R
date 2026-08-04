@@ -225,6 +225,10 @@ color_bar <- function(zlim, col, label) {
 #'   [expression]. Defaults to the `"statistic"` attribute of `W`, and to
 #'   `"edge weight"` when the matrix carries none.
 #' @param legend Draw the colour scale.
+#' @param W Matrix to display. Defaults to the one the fit was built from;
+#'   supply another of the same dimensions to view it in this node ordering.
+#' @param zlim Range of the colour scale. Defaults to the range of `W`; fix it
+#'   to compare separate figures on a common scale.
 #' @param ... Passed to [graphics::image()].
 #'
 #' @return `x`, invisibly. Called for the plot.
@@ -244,12 +248,13 @@ color_bar <- function(zlim, col, label) {
 plot.subnet <- function(x, what = c("reordered", "observed", "both"),
                         significant_only = TRUE,
                         col = grDevices::hcl.colors(64, "Inferno"),
-                        main = NULL, weight_label = NULL, legend = TRUE, ...) {
+                        main = NULL, weight_label = NULL, legend = TRUE,
+                        W = x$W, zlim = NULL, ...) {
   what <- match.arg(what)
-  W <- x$W
   # A single scale across both panels: they show the same numbers, so a shared
-  # range is what makes them comparable.
-  zlim <- c(0, max(W))
+  # range is what makes them comparable. Passing `zlim` extends that to
+  # separate figures, which is what makes two groups comparable side by side.
+  if (is.null(zlim)) zlim <- c(0, max(W))
   if (is.null(weight_label)) {
     weight_label <- attr(W, "statistic") %||% "edge weight"
   }
@@ -317,6 +322,11 @@ plot.subnet <- function(x, what = c("reordered", "observed", "both"),
 #'   [expression]. Defaults to the `"statistic"` attribute of the matrix, and
 #'   to `"edge weight"` when it carries none.
 #' @param legend Draw the colour scale.
+#' @param W Matrix to display. Defaults to the one the partition was built
+#'   from; supply another of the same dimensions to view it in this ordering,
+#'   which is how two groups are compared under a common partition.
+#' @param zlim Range of the colour scale. Defaults to the range of `W`; fix it
+#'   to compare separate figures on a common scale.
 #' @param ... Passed to [graphics::image()].
 #'
 #' @return `x`, invisibly. Called for the plot.
@@ -332,13 +342,17 @@ plot.subnet_partition <- function(x, what = c("reordered", "observed", "both"),
                                   blocks = seq_len(x$n_clusters),
                                   col = grDevices::hcl.colors(64, "Inferno"),
                                   main = NULL, weight_label = NULL,
-                                  legend = TRUE, ...) {
-  fake <- list(W = x$W, partition = x,
+                                  legend = TRUE, W = x$W, zlim = NULL, ...) {
+  if (!identical(dim(W), dim(x$W))) {
+    stop("`W` must have the same dimensions as the matrix the partition was ",
+         "built from.", call. = FALSE)
+  }
+  fake <- list(W = W, partition = x,
                size = x$sizes[seq_len(x$n_clusters)],
                significant = seq_len(x$n_clusters) %in% blocks)
   class(fake) <- "subnet"
   plot(fake, what = what, significant_only = TRUE, col = col, main = main,
-       weight_label = weight_label, legend = legend, ...)
+       weight_label = weight_label, legend = legend, zlim = zlim, ...)
   invisible(x)
 }
 
